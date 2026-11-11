@@ -125,8 +125,12 @@ export class Animator {
   lod = 0;
   /** Clip used in 'seat' mode. */
   seatClip = 'Sitting_Idle_Loop';
-  /** Called in 'pose' mode after the rest pose is applied, to shape the body procedurally. */
+  /** Called in 'pose' mode after the base pose is applied, to shape the body procedurally. */
   poseFn: ((rig: CharacterRig, dt: number) => void) | null = null;
+  /** Clip that gives 'pose' mode its base pose. The rest pose when null. */
+  poseClip: string | null = null;
+  /** World offset of the body from `position`, for poses that turn about the hips and not the feet. */
+  readonly rootOffset = new Vector3();
   /** Fired when a foot comes down while moving. */
   onFootstep: ((side: number, speed: number) => void) | null = null;
   /** Extra downward offset of the whole body in metres (sinking into a seat, swimming depth). */
@@ -366,8 +370,11 @@ export class Animator {
       this.legWarp = damp(this.legWarp, 0, 6, dt);
       fadeDur = 0.12;
     } else {
-      base.copy(bank.rest);
+      const c = this.poseClip ? this.clips[this.poseClip] : undefined;
+      if (c) bank.sample(c, this.modeTime, base);
+      else base.copy(bank.rest);
       this.legWarp = 0;
+      key = `pose-${this.poseClip ?? ''}`;
       fadeDur = 0.3;
     }
     if (this.mode !== 'air') {
@@ -435,7 +442,7 @@ export class Animator {
     }
     this.updateLean(dt, speed, grounded);
     const land = this.landSpring.update(0, dt);
-    rig.root.position.set(this.position.x, this.visualY + this.bodyOffsetY, this.position.z);
+    rig.root.position.set(this.position.x + this.rootOffset.x, this.visualY + this.bodyOffsetY + this.rootOffset.y, this.position.z + this.rootOffset.z);
     if (this.rootQuat && (this.mode === 'seat' || this.mode === 'pose')) rig.root.quaternion.copy(this.rootQuat).multiply(HALF_TURN);
     else rig.root.rotation.set(this.leanPitch, this.facing + Math.PI + this.legWarp, this.leanRoll, 'YXZ');
 

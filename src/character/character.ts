@@ -182,12 +182,19 @@ export class Character {
 
   fixedUpdate(dt: number, env: CharacterEnv): void {
     this.sinceHurt += dt;
-    if (this.state !== 'normal') {
-      this.motor.landed = 0;
-      this.motor.jumped = false;
+    const m = this.motor;
+    if (this.state === 'freefall' || this.state === 'chute') {
+      // Flying: the motor glides by the numbers the drop gave it, and the body turns with the view.
+      m.step(dt, this.input, env.waterHeight);
+      this.input.jump = false;
+      this.facing = dampAngle(this.facing, this.aimYaw, this.state === 'chute' ? 3.4 : 5.5, dt);
       return;
     }
-    const m = this.motor;
+    if (this.state !== 'normal') {
+      m.landed = 0;
+      m.jumped = false;
+      return;
+    }
     if (!this.alive) {
       this.input.moveX = 0;
       this.input.moveZ = 0;
@@ -233,7 +240,14 @@ export class Character {
   frameUpdate(dt: number, alpha: number): void {
     const m = this.motor;
     const a = this.anim;
-    if (this.state === 'seated') {
+    // Riding inside the seaplane: nothing to pose.
+    if (this.state === 'plane') return;
+    if (this.state === 'freefall' || this.state === 'chute') {
+      this.visual.lerpVectors(m.prevPosition, m.position, alpha);
+      a.velocity.copy(m.velocity);
+      a.mode = this.alive ? 'pose' : 'dead';
+      a.crouched = false;
+    } else if (this.state === 'seated') {
       a.velocity.set(0, 0, 0);
       a.mode = this.alive ? 'seat' : 'dead';
       a.crouched = false;

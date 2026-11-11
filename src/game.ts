@@ -9,6 +9,8 @@ import { Input } from './core/input';
 import { QUALITY, type QualityName, Settings } from './core/settings';
 import type { GameSystem } from './core/system';
 import { ThirdPersonCamera } from './gameplay/camera';
+import { Drop } from './gameplay/drop';
+import { Match } from './gameplay/match';
 import { Interactions } from './gameplay/interactions';
 import { ITEMS, type ItemId } from './gameplay/items';
 import { PlayerController } from './gameplay/player';
@@ -40,6 +42,8 @@ export interface GameEvents extends Record<string, unknown> {
   kill: { victim: Character; info: DamageInfo };
   /** A character received items (pickup or purchase). */
   grant: { to: Character; item: ItemId; count: number };
+  /** A character came down from the drop, onto something solid or into water. */
+  landed: { who: Character; water: boolean };
 }
 
 export interface GameOptions {
@@ -60,6 +64,8 @@ export class Game {
   clips!: ClipBank;
   characterAsset!: ModelAsset;
   camera!: ThirdPersonCamera;
+  drop!: Drop;
+  readonly match = new Match(this);
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
   readonly interactions = new Interactions();
@@ -100,6 +106,7 @@ export class Game {
     this.camera = new ThirdPersonCamera(this.engine.camera, this.physics);
     this.camera.baseFov = this.settings.data.fov;
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
+    this.drop = this.addSystem(new Drop(this));
     this.settings.onChange((_data, changed) => {
       if (changed !== 'quality') return;
       this.engine.applyQuality();
@@ -186,15 +193,30 @@ export class Game {
     return c;
   }
 
-  /** Put the player on the ground at a point and hand over control, skipping the drop. */
-  startAt(x: number, z: number, yaw = 0): Character {
+  /** The player's character, made on first use. */
+  ensurePlayer(x = -60, z = 13, yaw = 0): Character {
     if (!this.player) {
       this.player = this.spawnCharacter('You', true, x, z, yaw);
       this.controller = new PlayerController(this.player, this.input, this.camera, this.settings, this.interactions);
-    } else {
+    }
+    return this.player;
+  }
+
+  /** Start a round aboard the seaplane. */
+  startMatch(): void {
+    this.match.start();
+  }
+
+  /** Put the player on the ground at a point and hand over control, skipping the drop. */
+  startAt(x: number, z: number, yaw = 0): Character {
+    const fresh = !this.player;
+    const player = this.ensurePlayer(x, z, yaw);
+    this.match.stop();
+    if (!fresh) {
       const y = this.physics.groundHeight(x, 200, z, 400, this.world.field.heightAt(x, z)) + 0.05;
-      this.player.vehicle?.exit(this.player);
-      this.player.teleport(x, y, z, yaw);
+      this.drop.release(player);
+      player.vehicle?.exit(player);
+      player.teleport(x, y, z, yaw);
     }
     this.camera.yaw = yaw;
     this.camera.pitch = -0.12;
@@ -202,7 +224,7 @@ export class Game {
     this.cameraOverride = false;
     this.input.setWantLock(true);
     this.setPhase('match');
-    return this.player;
+    return player;
   }
 
   private fixedUpdate(dt: number): void {

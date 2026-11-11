@@ -16,6 +16,18 @@ export interface MotorInput {
 
 export type MotorMode = 'ground' | 'air' | 'swim' | 'slide' | 'off';
 
+/** How the body falls when it is flying rather than dropping: freefall, or under a parachute. */
+export interface Glide {
+  /** Sink rate the fall settles at, m/s. */
+  sink: number;
+  /** How hard the fall is pulled toward that rate, m/s². Also what stops a fast fall when a canopy opens. */
+  pull: number;
+  /** Horizontal speed at full stick, m/s. */
+  speed: number;
+  /** Horizontal acceleration, m/s². */
+  accel: number;
+}
+
 export const MOVE = {
   walk: 1.55,
   run: 4.7,
@@ -82,6 +94,8 @@ export class CharacterMotor {
   speed = 0;
   /** Speed cap multiplier (weapon weight, healing, storm). */
   speedScale = 1;
+  /** While set and off the ground, the body glides by these numbers instead of falling under gravity. */
+  glide: Glide | null = null;
   readonly body: RAPIER.RigidBody;
   readonly collider: RAPIER.Collider;
   private coyote = 0;
@@ -137,8 +151,20 @@ export class CharacterMotor {
     this.position.set(x, y, z);
     this.prevPosition.copy(this.position);
     this.velocity.set(0, 0, 0);
-    this.body.setTranslation({ x, y: y + this.half + MOVE.radius, z }, true);
+    _next.x = x;
+    _next.y = y + this.half + MOVE.radius;
+    _next.z = z;
+    this.body.setTranslation(_next, true);
+    // The last step's move is still queued on the kinematic body and would carry it back.
+    this.body.setNextKinematicTranslation(_next);
+    // Colliders follow their bodies at the next physics step; movement is worked out before that.
+    this.physics.world.propagateModifiedBodyPositionsToColliders();
     this.airTime = 0;
+    // Wherever this is, it is not where the body was standing or swimming.
+    if (this.enabled) {
+      this.mode = 'air';
+      this.grounded = false;
+    }
   }
 
   /** Move without collision, for scripted motion (plane, parachute, seats). Keeps the collider in sync. */
@@ -191,7 +217,8 @@ export class CharacterMotor {
       v.y *= 0.3;
     } else if (this.mode === 'swim') {
       const bed = this.physics.groundHeight(p.x, p.y + 1.2, p.z, 4, -100);
-      if (this.waterY - bed < MOVE.swimDepth - 0.14) this.mode = 'air';
+      // Out of the water altogether (lifted out, or the surface is far below) is not swimming either.
+      if (this.waterY - bed < MOVE.swimDepth - 0.14 || this.waterDepth < -0.5) this.mode = 'air';
     }
 
     this.jumpBuffer = input.jump ? 0.13 : Math.max(0, this.jumpBuffer - dt);
@@ -260,6 +287,20 @@ export class CharacterMotor {
             v.x += (dx / d) * rate;
             v.z += (dz / d) * rate;
           }
+        } else if (this.glide) {
+          // Steering in the air: toward the stick at full stick, and the drift bleeds off without it.
+          const g = this.glide;
+          const dx = mx * g.speed - v.x;
+          const dz = mz * g.speed - v.z;
+          const d = Math.hypot(dx, dz);
+          const rate = g.accel * (moving ? 1 : 0.3) * dt;
+          if (d <= rate || d < 1e-6) {
+            v.x = mx * g.speed;
+            v.z = mz * g.speed;
+          } else {
+            v.x += (dx / d) * rate;
+            v.z += (dz / d) * rate;
+          }
         } else if (moving) {
           const rate = 9 * dt;
           v.x = moveToward(v.x, tx, rate);
@@ -280,6 +321,7 @@ export class CharacterMotor {
         }
       }
       if (this.grounded && v.y <= 0) v.y = -0.6;
+      else if (this.glide) v.y = moveToward(v.y, -this.glide.sink, this.glide.pull * dt);
       else v.y = Math.max(-58, v.y - CHARACTER_GRAVITY * dt);
       // Water drag on the way in.
       if (this.waterDepth > 0.6 && v.y < -4) v.y += (-4 - v.y) * Math.min(1, 9 * dt);

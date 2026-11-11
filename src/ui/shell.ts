@@ -3,13 +3,16 @@ import type { Game } from '../game';
 interface StartPoint {
   name: string;
   note: string;
+  /** Aboard the seaplane, or on foot at a place. */
+  drop?: boolean;
   x: number;
   z: number;
   yaw: number;
 }
 
-/** Places a match can start on foot until the seaplane drop is in. */
+/** How a round can start: the seaplane drop, or straight onto the streets. */
 export const START_POINTS: readonly StartPoint[] = [
+  { name: 'Seaplane drop', note: 'Jump, fly, land', drop: true, x: 0, z: 0, yaw: 0 },
   { name: 'Deco Row', note: 'Avenida del Sol', x: -60, z: 13, yaw: -Math.PI / 2 },
   { name: 'Ocean Parade', note: 'The beach', x: 385, z: 150, yaw: -Math.PI / 2 },
   { name: 'Gran Via', note: 'Canal bridge', x: -5, z: -118, yaw: 0 },
@@ -18,11 +21,11 @@ export const START_POINTS: readonly StartPoint[] = [
 ];
 
 const CONTROLS: readonly [string, string][] = [
-  ['W A S D', 'Move'],
+  ['W A S D', 'Move, steer the fall'],
   ['Mouse', 'Look'],
+  ['Space', 'Jump, open parachute'],
   ['Shift', 'Sprint'],
   ['Alt', 'Walk'],
-  ['Space', 'Jump'],
   ['C', 'Crouch'],
   ['E', 'Use'],
   ['Esc', 'Menu'],
@@ -46,6 +49,9 @@ export class Shell {
   private readonly pause: HTMLElement;
   private readonly place: HTMLElement;
   private readonly note: HTMLElement;
+  private readonly altimeter: HTMLElement;
+  private readonly altValue: HTMLElement;
+  private readonly altLabel: HTMLElement;
   private toldFreeLook = false;
   private start = 0;
   private shownPrompt = '';
@@ -63,7 +69,11 @@ export class Shell {
     this.prompt.append(this.promptText);
     this.place = el('div', 'place');
     this.note = el('div', 'note');
-    root.append(this.place, this.note, this.prompt, this.pause, this.title);
+    this.altimeter = el('div', 'altimeter');
+    this.altValue = el('span', 'altimeter-value', '0');
+    this.altLabel = el('span', 'altimeter-label', 'm above ground');
+    this.altimeter.append(this.altValue, this.altLabel);
+    root.append(this.place, this.note, this.altimeter, this.prompt, this.pause, this.title);
     game.events.on('phase', () => this.sync());
     document.addEventListener('pointerlockchange', () => this.sync());
     window.addEventListener('keydown', (e) => {
@@ -77,11 +87,12 @@ export class Shell {
     window.clearInterval(this.timer);
   }
 
-  /** Start on foot at the chosen place. */
+  /** Start the round the chosen way. */
   play(): void {
     const p = START_POINTS[this.start] ?? START_POINTS[0]!;
-    this.game.startAt(p.x, p.z, p.yaw);
-    this.place.textContent = p.name;
+    if (p.drop) this.game.startMatch();
+    else this.game.startAt(p.x, p.z, p.yaw);
+    this.place.textContent = p.drop ? 'Marazul Bay' : p.name;
     this.place.classList.remove('show');
     // Restart the fade-in.
     void this.place.offsetWidth;
@@ -128,7 +139,7 @@ export class Shell {
       keys.append(row);
     }
     panel.append(keys);
-    panel.append(el('p', 'title-note', 'Preview build: the city, the water and movement on foot. The seaplane drop, vehicles, weapons and rivals are next.'));
+    panel.append(el('p', 'title-note', 'Preview build: the seaplane drop, the city, the water and movement on foot. Vehicles, weapons and rivals are next.'));
     screen.append(panel);
     return screen;
   }
@@ -142,6 +153,7 @@ export class Shell {
     back.addEventListener('click', (e) => {
       e.stopPropagation();
       this.game.input.setWantLock(false);
+      this.game.match.stop();
       this.game.setPhase('menu');
     });
     card.append(back);
@@ -171,6 +183,14 @@ export class Shell {
       this.note.textContent = 'Move the pointer to look. Rest it near a side edge to keep turning.';
       this.note.classList.add('show');
       window.setTimeout(() => this.note.classList.remove('show'), 9000);
+    }
+    // Height above whatever is below, while the player is in the air.
+    const stage = g.phase === 'match' ? g.match.stage : 'none';
+    const flying = stage === 'aboard' || stage === 'falling' || stage === 'canopy';
+    this.altimeter.classList.toggle('show', flying);
+    if (flying && g.player) {
+      this.altValue.textContent = String(Math.max(0, Math.round(g.drop.altitude(g.player))));
+      this.altLabel.textContent = stage === 'aboard' ? 'm, aboard the seaplane' : stage === 'falling' ? 'm, freefall' : 'm, under canopy';
     }
     const text = g.phase === 'match' ? (g.controller?.prompt ?? '') : '';
     if (text !== this.shownPrompt) {

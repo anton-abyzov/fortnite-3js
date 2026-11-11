@@ -259,7 +259,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(4, auto);
+  grid-template-columns: repeat(2, auto);
   justify-content: start;
   gap: 8px 22px;
   margin: 4px 0 0;
@@ -454,4 +454,37 @@ body {
 .note.show {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+.altimeter {
+  position: fixed;
+  right: 4%;
+  top: 44%;
+  display: none;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--glass-line);
+  border-radius: 10px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+}
+
+.altimeter.show {
+  display: flex;
+}
+
+.altimeter-value {
+  min-width: 2.4em;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--sun);
+}
+
+.altimeter-label {
+  font-size: 13px;
+  color: rgba(244, 251, 250, 0.78);
 }

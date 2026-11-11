@@ -18,6 +18,10 @@ export class PlayerController {
   locked = false;
   /** What the interact key would use right now, if anything. */
   target: Interactable | null = null;
+  /** When set, the camera frames this and not the character: the seaplane, the fall, the canopy. */
+  subjectOverride: CameraSubject | null = null;
+  /** When set, shown as the prompt for the action key: "Jump", "Open parachute". */
+  promptOverride = '';
   private readonly foot: CameraSubject;
   private sprintKick = 0;
 
@@ -33,11 +37,13 @@ export class PlayerController {
 
   /** What the camera should frame: the character on foot, or the vehicle they sit in. */
   get subject(): CameraSubject {
+    if (this.subjectOverride) return this.subjectOverride;
     return this.character.vehicle ? this.character.vehicle.cameraSubject : this.foot;
   }
 
   /** The words for the interact prompt, or an empty string. */
   get prompt(): string {
+    if (this.promptOverride) return this.promptOverride;
     if (this.character.vehicle) return 'Get out';
     if (this.character.state === 'seated') return 'Stand up';
     return this.target ? this.interactions.labelOf(this.target, this.character) : '';
@@ -123,12 +129,6 @@ export class PlayerController {
       if (input.pressed('KeyE') || input.pressed('KeyF') || input.pressed('Space') || input.axis('KeyS', 'KeyW') !== 0 || input.axis('KeyA', 'KeyD') !== 0) c.rise();
       return;
     }
-    if (c.state !== 'normal') {
-      this.target = null;
-      return;
-    }
-    this.target = this.interactions.find(c, this.camera.forward);
-    if (this.target && (input.pressed('KeyE') || input.pressed('KeyF'))) this.interact();
     const fwd = input.axis('KeyS', 'KeyW') + input.axis('ArrowDown', 'ArrowUp');
     const right = input.axis('KeyA', 'KeyD') + input.axis('ArrowLeft', 'ArrowRight');
     const yaw = this.camera.yaw;
@@ -142,6 +142,24 @@ export class PlayerController {
       mx /= len;
       mz /= len;
     }
+    if (c.state === 'plane' || c.state === 'freefall' || c.state === 'chute') {
+      // In the drop: the same keys steer through the air, and the action keys jump out and open the canopy.
+      this.target = null;
+      this.crouchToggle = false;
+      mi.moveX = mx;
+      mi.moveZ = mz;
+      mi.sprint = false;
+      mi.walk = false;
+      mi.crouch = false;
+      if (input.pressed('Space') || input.pressed('KeyE') || input.pressed('KeyF')) mi.jump = true;
+      return;
+    }
+    if (c.state !== 'normal') {
+      this.target = null;
+      return;
+    }
+    this.target = this.interactions.find(c, this.camera.forward);
+    if (this.target && (input.pressed('KeyE') || input.pressed('KeyF'))) this.interact();
     // Nobody runs backward or sideways as fast as forward.
     const pace = fwd < 0 ? 0.7 : right !== 0 && fwd === 0 ? 0.88 : 1;
     mi.moveX = mx * pace;

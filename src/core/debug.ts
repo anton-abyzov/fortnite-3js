@@ -29,6 +29,12 @@ export interface DebugApi {
   census(): Record<string, number>;
   /** Put the player on the ground at a point, skipping the menu and the drop. */
   startAt(x: number, z: number, yaw?: number): void;
+  /** Start a round aboard the seaplane, as the Play button does. */
+  startMatch(): void;
+  /** Put the player in freefall at a point (for checking landings on a chosen roof, street or water). */
+  skydive(x: number, y: number, z: number): void;
+  /** The seaplane and the round. */
+  drop(): Record<string, any>;
   /** Press the interact key for the player: use what the prompt offers, or get out of a vehicle. */
   interact(): boolean;
   /** Entry points published by systems (vehicles, shops, bots...) for tests. */
@@ -106,6 +112,16 @@ export function installDebug(game: Game): DebugApi {
     startAt: (x, z, yaw = 0) => {
       game.startAt(x, z, yaw);
     },
+    startMatch: () => game.startMatch(),
+    skydive: (x, y, z) => {
+      const c = game.ensurePlayer(x, z, 0);
+      if (game.phase !== 'match') game.startAt(x, z, 0);
+      game.drop.skydive(c, x, y, z);
+    },
+    drop: () => {
+      const d = game.drop;
+      return { flying: d.flying, doorOpen: d.doorOpen, travelled: d.travelled, x: d.planePos.x, y: d.planePos.y, z: d.planePos.z, stage: game.match.stage, round: game.match.round };
+    },
     interact: () => game.controller?.interact() ?? false,
     ext: game.debugExt,
     resetMetrics: () => {
@@ -146,6 +162,7 @@ export function installDebug(game: Game): DebugApi {
         headPitch: Math.asin(Math.max(-1, Math.min(1, c.anim.partFacing('head', _dir).y))),
         chestYaw: partYaw(c, 'chest'),
         hipsYaw: partYaw(c, 'hips'),
+        altitude: game.drop.altitude(c),
         cash: c.cash,
         items: { ...c.inventory.counts },
         armor: c.armor,
