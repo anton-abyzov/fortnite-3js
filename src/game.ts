@@ -15,6 +15,7 @@ import { Interactions } from './gameplay/interactions';
 import { ITEMS, type ItemId } from './gameplay/items';
 import { PlayerController } from './gameplay/player';
 import { Physics } from './physics/physics';
+import { Effects } from './render/particles';
 import { installBoats } from './vehicles/boats';
 import { installCars } from './vehicles/cars';
 import { installShops } from './world/shops';
@@ -68,6 +69,8 @@ export class Game {
   characterAsset!: ModelAsset;
   camera!: ThirdPersonCamera;
   drop!: Drop;
+  /** Sparks, smoke, spray: `fx.burst(kind, x, y, z)`. */
+  readonly fx = new Effects();
   readonly match = new Match(this);
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
@@ -109,6 +112,7 @@ export class Game {
     this.camera = new ThirdPersonCamera(this.engine.camera, this.physics);
     this.camera.baseFov = this.settings.data.fov;
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
+    this.addSystem(this.fx);
     this.drop = this.addSystem(new Drop(this));
     progress(0.78, 'Parking cars');
     await installCars(this);
