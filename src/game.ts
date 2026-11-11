@@ -15,6 +15,9 @@ import { Interactions } from './gameplay/interactions';
 import { ITEMS, type ItemId } from './gameplay/items';
 import { PlayerController } from './gameplay/player';
 import { Physics } from './physics/physics';
+import { installBoats } from './vehicles/boats';
+import { installCars } from './vehicles/cars';
+import { installShops } from './world/shops';
 import type { Vehicle } from './vehicles/vehicle';
 import { World } from './world/world';
 
@@ -107,6 +110,12 @@ export class Game {
     this.camera.baseFov = this.settings.data.fov;
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
     this.drop = this.addSystem(new Drop(this));
+    progress(0.78, 'Parking cars');
+    await installCars(this);
+    progress(0.82, 'Mooring boats');
+    await installBoats(this);
+    progress(0.86, 'Opening the shops');
+    await installShops(this);
     this.settings.onChange((_data, changed) => {
       if (changed !== 'quality') return;
       this.engine.applyQuality();
@@ -197,6 +206,7 @@ export class Game {
   ensurePlayer(x = -60, z = 13, yaw = 0): Character {
     if (!this.player) {
       this.player = this.spawnCharacter('You', true, x, z, yaw);
+      this.player.cash = 300;
       this.controller = new PlayerController(this.player, this.input, this.camera, this.settings, this.interactions);
     }
     return this.player;
