@@ -47,7 +47,13 @@ interface Foot {
   lockYawFix: number;
   /** Leftover offset after release, blended out. */
   release: Vector3;
-  groundOffset: number;
+  /** World height of the ground this foot is over, smoothed, and the height it is heading for. */
+  groundY: number;
+  groundTarget: number;
+  groundNormal: Vector3;
+  /** The pin was dragged or pulled in, so the ground under it has to be looked up again. */
+  pinMoved: boolean;
+  hasGround: boolean;
   normal: Vector3;
   stepping: number;
   stepFrom: Vector3;
@@ -198,7 +204,11 @@ export class Animator {
       lockYaw: 0,
       lockYawFix: 0,
       release: new Vector3(),
-      groundOffset: 0,
+      groundY: 0,
+      groundTarget: 0,
+      groundNormal: new Vector3(0, 1, 0),
+      pinMoved: false,
+      hasGround: false,
       normal: new Vector3(0, 1, 0),
       stepping: 0,
       stepFrom: new Vector3(),
@@ -284,7 +294,7 @@ export class Animator {
     for (const f of this.feet) {
       f.planted = false;
       f.release.set(0, 0, 0);
-      f.groundOffset = 0;
+      f.hasGround = false;
       f.stepping = 0;
       f.hasLast = false;
       f.hasRel = false;
@@ -467,6 +477,7 @@ export class Animator {
         f.planted = false;
         f.hasLast = false;
         f.hasRel = false;
+        f.hasGround = false;
         f.stepping = 0;
       }
       this.hasLastPos = false;
@@ -656,7 +667,9 @@ export class Animator {
       if (speed < 0.35) down = f.planted ? !(hT > 0.09 && hA > 0.17) : hT < 0.06 || hA < 0.135;
       else if (f.planted) down = back > speed * 0.22 && !(hT > 0.075 && hA > 0.16);
       else down = back > speed * 0.55 && (hT < 0.05 || hA < 0.13);
+      let landed = false;
       if (down && !f.planted) {
+        landed = true;
         f.planted = true;
         f.lock.set(t.x + f.release.x, 0, t.z + f.release.z);
         f.toeLock.set(f.lock.x + _toe.x - _ankle.x, 0, f.lock.z + _toe.z - _ankle.z);
@@ -710,6 +723,7 @@ export class Animator {
           // Never stretch a leg: drag the pin along when the body outruns it.
           const k = 0.3 / err;
           f.lock.set(animX + ex * k, 0, animZ + ez * k);
+          f.pinMoved = true;
         }
         if (f.stepping > 0) yawFix = clamp(angleDiff(yaw, f.lockYaw), -1.0, 1.0);
         f.toeLock.set(f.lock.x + vx, 0, f.lock.z + vz);
@@ -723,20 +737,42 @@ export class Animator {
         t.z += f.release.z;
       }
 
-      // Ground under the foot.
-      const hit = this.physics.raycast(t.x, rootY + 0.75, t.z, 0, -1, 0, 1.5, CG.querySolid);
-      let off = 0;
-      if (hit) {
-        off = clamp(hit.point.y - rootY, -0.55, 0.6);
-        f.normal.lerp(hit.normal, 1 - Math.exp(-14 * dt)).normalize();
+      // Ground under the foot, kept as a world height: a planted foot stays on its ground while the body
+      // rises over a kerb or climbs a slope. A foot rests on the higher of what is under its heel and its
+      // toe, so one that straddles a kerb edge stands on the kerb. The height is taken when the foot lands
+      // and held for the whole stance; in the swing it follows the ground below, smoothed.
+      const toeX = f.planted ? f.toeLock.x : t.x + _toe.x - _ankle.x;
+      const toeZ = f.planted ? f.toeLock.z : t.z + _toe.z - _ankle.z;
+      const held = f.planted && !landed && f.hasGround && f.stepping === 0 && !f.pinMoved;
+      f.pinMoved = false;
+      if (held) {
+        f.normal.lerp(f.groundNormal, 1 - Math.exp(-14 * dt)).normalize();
       } else {
-        f.normal.lerp(UP, 1 - Math.exp(-14 * dt)).normalize();
+        let groundY = rootY;
+        const hit = this.physics.raycast(t.x, rootY + 0.75, t.z, 0, -1, 0, 1.5, CG.querySolid);
+        if (hit) {
+          groundY = hit.point.y;
+          f.groundNormal.copy(hit.normal);
+        } else {
+          f.groundNormal.copy(UP);
+        }
+        const hitToe = this.physics.raycast(toeX, rootY + 0.75, toeZ, 0, -1, 0, 1.5, CG.querySolid);
+        if (hitToe && (!hit || hitToe.point.y > groundY)) {
+          // The toe is on something higher: treat the foot as level on it.
+          if (hitToe.point.y > groundY + 0.05) f.groundNormal.copy(UP);
+          groundY = hitToe.point.y;
+        }
+        groundY = clamp(groundY, rootY - 0.55, rootY + 0.6);
+        f.normal.lerp(f.groundNormal, 1 - Math.exp(-14 * dt)).normalize();
+        f.groundTarget = groundY;
+        if (!f.hasGround || landed) f.groundY = groundY;
+        f.hasGround = true;
       }
-      rawGround[s] = rootY + off;
-      f.groundOffset = damp(f.groundOffset, off, 22, dt);
+      if (f.groundY !== f.groundTarget) f.groundY = damp(f.groundY, f.groundTarget, f.planted ? 45 : 22, dt);
+      rawGround[s] = f.groundTarget;
       // The ground matters less the higher the foot swings.
       const influence = 1 - smoothstep(0.16, 0.42, hA);
-      const g = f.groundOffset * influence;
+      const g = (f.groundY - rootY) * influence;
       heights[s] = hA;
       t.y = rootY + hA + g + lift;
       if (g < lowest) lowest = g;
@@ -776,12 +812,13 @@ export class Animator {
           f.toeLock.z += t.z - f.lock.z;
           f.lock.x = t.x;
           f.lock.z = t.z;
+          f.pinMoved = true;
         }
         short = REACH_DROP;
       }
       if (short > need) need = short;
     }
-    this.reachDrop = need > this.reachDrop ? damp(this.reachDrop, need, 40, dt) : damp(this.reachDrop, need, 9, dt);
+    this.reachDrop = damp(this.reachDrop, need, need > this.reachDrop ? 150 : 9, dt);
     if (this.reachDrop > 1e-4) {
       translateWorld(b.hips, 0, -this.reachDrop * this.ikW, 0);
       drop -= this.reachDrop * this.ikW;

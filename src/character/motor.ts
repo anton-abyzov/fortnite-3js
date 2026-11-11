@@ -315,7 +315,9 @@ export class CharacterMotor {
     if (dt > 0) {
       const ax = m.x / dt;
       const az = m.z / dt;
-      if (Math.abs(ax) < Math.abs(v.x) - 0.5 || Math.abs(az) < Math.abs(v.z) - 0.5) {
+      // Stepping up a kerb shortens one step's travel without being a wall: keep the pace over it.
+      const stepped = wasGrounded && m.y > 0.03;
+      if (!stepped && (Math.abs(ax) < Math.abs(v.x) - 0.5 || Math.abs(az) < Math.abs(v.z) - 0.5)) {
         v.x = ax;
         v.z = az;
       }
