@@ -98,8 +98,11 @@ export function buildMiamiWorld(
   );
 
   // 4. Paved Coastal Boulevards & Avenues (Ocean Blvd X=35, Brickell Ave X=-66, Causeway East-West Z=+-38)
-  const addRoadStrip = (cx: number, cz: number, sx: number, sz: number) => {
-    const road = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.08, sz), materials.asphalt);
+  const addRoadStrip = (cx: number, cz: number, sx: number, sz: number, eastWest = false) => {
+    const road = new THREE.Mesh(
+      new THREE.BoxGeometry(sx, 0.08, sz),
+      eastWest ? materials.asphaltEastWest : materials.asphalt,
+    );
     road.position.set(cx, ISLAND_GROUND_Y + 0.03, cz);
     road.receiveShadow = true;
     worldGroup.add(road);
@@ -120,8 +123,8 @@ export function buildMiamiWorld(
   addRoadStrip(-66, -75, 12, 118);
   addRoadStrip(-66, 75, 12, 118);
   // East-West Causeway Boulevards connecting Brickell to Ocean Drive bridges
-  addRoadStrip(-78, -38, 104, 11);
-  addRoadStrip(-78, 38, 104, 11);
+  addRoadStrip(-86, -38, 88, 10.5, true);
+  addRoadStrip(-86, 38, 88, 10.5, true);
 
   // 5. Arched Venetian & Inlet Bridges (cars drive OVER at Y=5.4m, boats pass UNDER Y=0..5.0m!)
   for (const br of MIAMI_BRIDGES) {
@@ -134,7 +137,7 @@ export function buildMiamiWorld(
       // Flat elevated center span over canal
       const deck = new THREE.Mesh(
         new THREE.BoxGeometry(br.spanLength, deckThick, br.width),
-        materials.asphalt,
+        materials.asphaltEastWest,
       );
       deck.position.set(br.centerX, br.deckY - deckThick * 0.5, br.centerZ);
       deck.castShadow = true;
@@ -172,7 +175,7 @@ export function buildMiamiWorld(
 
         const ramp = new THREE.Mesh(
           new THREE.BoxGeometry(rampHyp + 0.4, deckThick, br.width),
-          materials.asphalt,
+          materials.asphaltEastWest,
         );
         ramp.position.set(rx, ry, br.centerZ);
         ramp.rotation.z = rotZ;

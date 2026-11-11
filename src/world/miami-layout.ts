@@ -146,9 +146,9 @@ export const MIAMI_DOCKS: readonly MarinaDockSpec[] = [
 ];
 
 export const AIRCRAFT_FLIGHT_PATH = {
-  start: { x: 85, y: 142, z: -150 } satisfies Vec3Like,
-  end: { x: -75, y: 142, z: 150 } satisfies Vec3Like,
-  speedMps: 26,
+  start: { x: 82, y: 142, z: -58 } satisfies Vec3Like,
+  end: { x: -72, y: 142, z: 78 } satisfies Vec3Like,
+  speedMps: 24,
 };
 
 export function sampleWaterBedHeight(x: number, z: number): number {

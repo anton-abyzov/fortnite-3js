@@ -1,0 +1,17 @@
+$ npm run test:unit -- tests/unit/assets.test.ts
+# exit 0 — 2026-11-11T18:56:26.638Z
+
+
+> sunbreak-biscayne@0.1.0 test:unit
+> vitest run tests/unit/assets.test.ts
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.1.0 [39m[90m/Users/antonabyzov/Projects/github/fortnite-3js[39m
+
+ [32m✓[39m tests/unit/assets.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 13:56:26
+[2m   Duration [22m 276ms[2m (import 52%, tests 24%, transform 20%, worker 3%)[22m
+

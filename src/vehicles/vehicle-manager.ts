@@ -42,7 +42,7 @@ export class VehicleManager {
       new RaycastCar(
         'car_bayside_causeway',
         'convertible',
-        { x: -30.5, y: ISLAND_GROUND_Y + 0.65, z: 36.5 },
+        { x: -45.5, y: ISLAND_GROUND_Y + 0.72, z: 38.0 },
         -Math.PI * 0.5,
         scene,
         physics,

@@ -25,11 +25,12 @@ export class SunbreakPostPipeline {
       multisampling: 0,
     });
 
+    renderer.toneMappingExposure = 0.68;
     const renderPass = new RenderPass(scene, camera);
     this.bloom = new BloomEffect({
-      intensity: 0.55,
-      luminanceThreshold: 0.88,
-      luminanceSmoothing: 0.22,
+      intensity: 0.36,
+      luminanceThreshold: 1.18,
+      luminanceSmoothing: 0.25,
       mipmapBlur: true,
     });
 

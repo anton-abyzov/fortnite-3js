@@ -249,18 +249,18 @@ export class TimeOfDaySystem {
     this.hemiLight.intensity = st.ambientIntensity;
 
     const skyUniforms = this.skyMesh.material.uniforms;
-    skyUniforms['turbidity'].value = lerp(2.6, 7.5, 1 - st.nightFactor);
-    skyUniforms['rayleigh'].value = lerp(0.4, 2.4, 1 - st.nightFactor * 0.85);
-    skyUniforms['mieCoefficient'].value = 0.005;
-    skyUniforms['mieDirectionalG'].value = 0.82;
+    skyUniforms['turbidity'].value = lerp(1.8, 3.2, 1 - st.nightFactor);
+    skyUniforms['rayleigh'].value = lerp(0.25, 1.35, 1 - st.nightFactor * 0.85);
+    skyUniforms['mieCoefficient'].value = 0.0028;
+    skyUniforms['mieDirectionalG'].value = 0.76;
     skyUniforms['sunPosition'].value.copy(st.sunDirection).multiplyScalar(1000);
     this.skyMesh.position.set(focusPos.x, 0, focusPos.z);
 
     if (!this.scene.fog) {
-      this.scene.fog = new THREE.FogExp2(st.fogColor.getHex(), 0.00125);
+      this.scene.fog = new THREE.FogExp2(st.fogColor.getHex(), 0.00028);
     } else if (this.scene.fog instanceof THREE.FogExp2) {
       this.scene.fog.color.copy(st.fogColor);
-      this.scene.fog.density = lerp(0.0011, 0.0018, st.nightFactor);
+      this.scene.fog.density = lerp(0.00026, 0.00068, st.nightFactor);
     }
 
     const hourDelta = Math.abs(this.hours - this.lastEnvUpdateHours);

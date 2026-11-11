@@ -66,7 +66,7 @@ Out: live networked multiplayer runtime, persistent user accounts, commercial IP
 - AC: AC-06 | Files: src/vehicles/raycast-car.ts, src/vehicles/watercraft.ts, src/vehicles/vehicle-manager.ts, tests/unit/vehicles.test.ts | Test: npm run test:unit -- tests/unit/vehicles.test.ts
 
 ### T-07 Implement original weapons, autonomous drop bots, tropical storm zone, procedural audio, HUD and E2E verification
-- AC: AC-01, AC-02, AC-04, AC-05, AC-06, AC-07 | Files: src/combat/weapons.ts, src/combat/projectiles-bvh.ts, src/ai/bot-agent.ts, src/ai/bot-manager.ts, src/gameplay/storm-zone.ts, src/audio/sound-engine.ts, src/ui/styles.css, src/ui/hud.ts, src/game/sunbreak-game.ts, src/main.ts, tests/e2e/sunbreak.spec.ts | Test: npm run build && npm run test:e2e
+- AC: AC-01, AC-02, AC-04, AC-05, AC-06, AC-07 | Files: src/combat/weapons.ts, src/combat/projectiles-bvh.ts, src/ai/bot-agent.ts, src/ai/bot-manager.ts, src/gameplay/storm-zone.ts, src/audio/sound-engine.ts, src/ui/styles.css, src/ui/hud.ts, src/game/sunbreak-game.ts, src/main.ts, src/rendering/materials.ts, src/rendering/time-of-day.ts, src/rendering/post-processing.ts, src/world/miami-layout.ts, src/world/miami-builder.ts, src/world/foliage-props.ts, src/world/shops.ts, src/character/player-controller.ts, src/vehicles/vehicle-manager.ts, tests/e2e/sunbreak.spec.ts | Test: npm run build && npm run test:e2e
 
 ### T-08 Author multiplayer architecture evaluation and project documentation
 - AC: AC-08 | Files: docs/multiplayer-evaluation.md, README.md, .specweave/memory/MEMORY.md, .specweave/memory/architecture.md | Test: npm run verify:all

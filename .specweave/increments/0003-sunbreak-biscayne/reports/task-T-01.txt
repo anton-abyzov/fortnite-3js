@@ -1,0 +1,21 @@
+$ npm run lint && npm run test:unit
+# exit 0 — 2026-11-11T18:34:56.186Z
+
+
+> sunbreak-biscayne@0.1.0 lint
+> tsc --noEmit
+
+
+> sunbreak-biscayne@0.1.0 test:unit
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.1.0 [39m[90m/Users/antonabyzov/Projects/github/fortnite-3js[39m
+
+ [32m✓[39m tests/unit/math.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m   Start at [22m 13:34:55
+[2m   Duration [22m 259ms[2m (transform 46%, import 33%, tests 12%, worker 8%)[22m
+

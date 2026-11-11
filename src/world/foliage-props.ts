@@ -149,11 +149,12 @@ export class FoliageAndPropsSystem {
     // Palm colonnade along Ocean Blvd (X = 30 & X = 44), Brickell Ave, and Marina promenades
     const palmSpots: Array<[number, number, number]> = [];
     for (let z = -66; z <= 66; z += 14) {
-      palmSpots.push([29.5, 2.2, z]);
+      if (Math.abs(Math.abs(z) - 38) < 9) continue;
+      palmSpots.push([28.5, 2.2, z]);
       palmSpots.push([45.5, 2.2, z + 4]);
     }
     for (let z = -124; z <= 124; z += 20) {
-      if (Math.abs(z) > 18) {
+      if (Math.abs(z) > 18 && Math.abs(Math.abs(z) - 38) > 10) {
         palmSpots.push([-27.5, 2.2, z]);
         palmSpots.push([-56.0, 2.2, z]);
       }

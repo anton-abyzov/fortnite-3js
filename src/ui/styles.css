@@ -1,0 +1,556 @@
+:root {
+  --limestone: #f6f2ea;
+  --limestone-muted: rgba(246, 242, 234, 0.72);
+  --atlantic-glass: rgba(8, 24, 34, 0.76);
+  --atlantic-deep: rgba(5, 16, 24, 0.9);
+  --hairline: rgba(246, 242, 234, 0.16);
+  --biscayne-teal: #12b3c2;
+  --coral-sun: #ff5e4d;
+  --brass-sand: #e8c170;
+  --emerald-vital: #2ec492;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #061520;
+  color: var(--limestone);
+  font-family: var(--font-sans);
+}
+
+.sunbreak-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Top-Left Coastal Nautical Radar */
+.radar-panel {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 214px;
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 10px;
+  pointer-events: auto;
+}
+
+.radar-canvas {
+  display: block;
+  width: 192px;
+  height: 192px;
+  border-radius: 6px;
+  border: 1px solid rgba(18, 179, 194, 0.28);
+}
+
+.radar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--limestone-muted);
+}
+
+.radar-alive {
+  color: var(--limestone);
+  font-weight: 600;
+}
+
+/* Top-Center Compass & District Callout */
+.top-compass {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.compass-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 16px;
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.district-banner {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--limestone);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+  min-height: 24px;
+}
+
+/* Top-Right Photoreal Lighting & GPU Path-Tracer Studio */
+.lighting-studio {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 292px;
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 11px 13px;
+  pointer-events: auto;
+}
+
+.studio-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.studio-row:last-child {
+  margin-bottom: 0;
+}
+
+.studio-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--limestone);
+}
+
+.studio-clock {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brass-sand);
+}
+
+.preset-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  width: 100%;
+}
+
+.studio-btn {
+  background: rgba(246, 242, 234, 0.08);
+  color: var(--limestone);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 5px 7px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.studio-btn:hover,
+.studio-btn:focus-visible {
+  background: rgba(18, 179, 194, 0.24);
+  border-color: var(--biscayne-teal);
+  outline: none;
+}
+
+.studio-btn.active {
+  background: var(--biscayne-teal);
+  color: #04151c;
+  border-color: var(--biscayne-teal);
+}
+
+.studio-btn.pathtrace-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+}
+
+.studio-btn.pathtrace-btn.active {
+  background: var(--coral-sun);
+  color: #160604;
+  border-color: var(--coral-sun);
+}
+
+.time-slider {
+  width: 100%;
+  accent-color: var(--brass-sand);
+  cursor: pointer;
+}
+
+/* Center Reticle & Interaction Prompt */
+.reticle-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+}
+
+.reticle-line {
+  position: absolute;
+  background: rgba(246, 242, 234, 0.9);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.65);
+}
+
+.reticle-line.top {
+  width: 2px;
+  height: 6px;
+  left: 12px;
+  top: 0;
+}
+.reticle-line.bottom {
+  width: 2px;
+  height: 6px;
+  left: 12px;
+  bottom: 0;
+}
+.reticle-line.left {
+  width: 6px;
+  height: 2px;
+  top: 12px;
+  left: 0;
+}
+.reticle-line.right {
+  width: 6px;
+  height: 2px;
+  top: 12px;
+  right: 0;
+}
+
+.reticle-wrap.hit .reticle-line {
+  background: var(--coral-sun);
+}
+
+.interact-prompt {
+  position: absolute;
+  top: calc(50% + 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--atlantic-deep);
+  border: 1px solid var(--biscayne-teal);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--limestone);
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.interact-prompt.hidden {
+  display: none;
+}
+
+.key-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-right: 7px;
+  border-radius: 4px;
+  background: var(--biscayne-teal);
+  color: #04151c;
+  font-weight: 700;
+}
+
+/* Bottom-Left Vitals */
+.vitals-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 18px;
+  width: 268px;
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.bar-row {
+  margin-bottom: 8px;
+}
+
+.bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 4px;
+  color: var(--limestone-muted);
+}
+
+.bar-val {
+  font-family: var(--font-mono);
+  color: var(--limestone);
+}
+
+.bar-track {
+  height: 7px;
+  background: rgba(246, 242, 234, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 90ms linear;
+}
+
+.bar-fill.shield {
+  background: var(--biscayne-teal);
+}
+.bar-fill.health {
+  background: var(--emerald-vital);
+}
+.bar-fill.stamina {
+  background: var(--brass-sand);
+}
+
+/* Bottom-Right Arsenal & Speedometer */
+.arsenal-panel {
+  position: absolute;
+  bottom: 20px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.vehicle-card {
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--biscayne-teal);
+  border-radius: 10px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.vehicle-card.hidden {
+  display: none;
+}
+
+.vehicle-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--biscayne-teal);
+}
+
+.vehicle-speed {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--limestone);
+}
+
+.ammo-readout {
+  background: var(--atlantic-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+.ammo-reserve {
+  font-size: 13px;
+  color: var(--limestone-muted);
+}
+
+.weapon-rack {
+  display: flex;
+  gap: 6px;
+}
+
+.weapon-slot {
+  min-width: 96px;
+  background: var(--atlantic-glass);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 7px 10px;
+  opacity: 0.42;
+}
+
+.weapon-slot.unlocked {
+  opacity: 0.85;
+}
+
+.weapon-slot.active {
+  opacity: 1;
+  border-color: var(--brass-sand);
+  background: rgba(232, 193, 112, 0.16);
+}
+
+.slot-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--brass-sand);
+}
+
+.slot-name {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Bottom-Center Controls Legend */
+.controls-strip {
+  position: absolute;
+  bottom: 20px;
+  left: 304px;
+  right: 522px;
+  text-align: center;
+  background: rgba(8, 24, 34, 0.68);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  color: var(--limestone-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1360px) {
+  .controls-strip {
+    display: none;
+  }
+}
+
+/* Hero Briefing / Match End Modal */
+.briefing-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(6, 21, 32, 0.35), rgba(4, 12, 20, 0.78));
+  pointer-events: auto;
+}
+
+.briefing-modal.hidden {
+  display: none;
+}
+
+.briefing-card {
+  max-width: 520px;
+  width: calc(100% - 32px);
+  background: var(--atlantic-deep);
+  border: 1px solid rgba(246, 242, 234, 0.22);
+  border-radius: 14px;
+  padding: 28px 30px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.briefing-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.08;
+  color: var(--limestone);
+}
+
+.briefing-lead {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--limestone-muted);
+}
+
+.briefing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--limestone);
+}
+
+.briefing-cta {
+  margin-top: 22px;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--coral-sun);
+  color: #160503;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.briefing-cta:hover {
+  filter: brightness(1.08);
+}
+
+.toast-feed {
+  position: absolute;
+  top: 94px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.toast-item {
+  background: var(--atlantic-deep);
+  border-left: 3px solid var(--brass-sand);
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--limestone);
+}
+
+@media (max-width: 960px) {
+  .controls-strip {
+    display: none;
+  }
+  .radar-panel {
+    width: 164px;
+  }
+  .radar-canvas {
+    width: 142px;
+    height: 142px;
+  }
+}

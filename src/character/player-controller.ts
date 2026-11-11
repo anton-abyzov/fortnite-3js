@@ -12,10 +12,10 @@ export class PlayerController {
   public readonly canopy: ParachuteCanopyVisual;
   public readonly animator = new BiomechanicalAnimator();
 
-  public position = new THREE.Vector3(0, 142, 0);
+  public position = new THREE.Vector3(82, 142, -58);
   public velocity = new THREE.Vector3();
-  public yaw = 0;
-  public pitch = -0.14;
+  public yaw = 1.05;
+  public pitch = -0.56;
   public phase: DropPhase = 'aircraft';
 
   public health = 100;
@@ -140,6 +140,7 @@ export class PlayerController {
         this.animator.triggerLandingImpact(this.velocity.y);
         this.velocity.y = 0;
         this.phase = 'grounded';
+        this.pitch = clamp(this.pitch, -0.22, 0.35);
         this.lastSurface = hit.material;
       } else if (this.position.y <= wave.height - 0.55) {
         this.position.y = wave.height - 0.72;

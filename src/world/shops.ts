@@ -339,9 +339,40 @@ export class ShopManager {
     );
 
     // Warm interior point light for inviting storefront glow
-    const interiorLight = new THREE.PointLight(0xffe5c4, 8.5, 16, 1.6);
-    interiorLight.position.set(cx, cy + sy - 0.55, cz);
+    const interiorLight = new THREE.PointLight(0xffe5c4, 3.6, 15, 1.8);
+    interiorLight.position.set(cx, cy + sy - 0.65, cz);
     group.add(interiorLight);
+
+    // Rich interior merchandising: back-wall display shelves, surfboard rack & neon menu sign
+    for (const shelfY of [1.1, 2.0, 2.85]) {
+      const shelf = new THREE.Mesh(
+        new THREE.BoxGeometry(0.45, 0.08, sz - 2.4),
+        counterMat,
+      );
+      shelf.position.set(cx - sx * 0.5 + 0.48, cy + shelfY, cz);
+      shelf.castShadow = true;
+      group.add(shelf);
+    }
+
+    const menuBoard = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.95, 3.4),
+      neonMat,
+    );
+    menuBoard.position.set(cx - sx * 0.5 + 0.28, cy + 3.15, cz);
+    group.add(menuBoard);
+
+    const boardColors = [0xff6b57, 0x12b3c2, 0xffbe3d];
+    boardColors.forEach((bHex, bIdx) => {
+      const board = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.24, 1.85, 6, 10),
+        materials.createStucco(bHex, 0.28),
+      );
+      board.scale.set(0.22, 1.0, 1.0);
+      board.position.set(cx - 2.4 + bIdx * 1.35, cy + 1.25, cz - sz * 0.5 + 0.52);
+      board.rotation.x = 0.14;
+      board.castShadow = true;
+      group.add(board);
+    });
 
     // Optional exterior side staircase up to the Miami Rooftop Lounge!
     if (shop.hasRooftopStairs) {

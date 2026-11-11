@@ -38,6 +38,7 @@ function hash2d(x: number, y: number): number {
 
 export interface MiamiMaterialSet {
   asphalt: THREE.MeshStandardMaterial;
+  asphaltEastWest: THREE.MeshStandardMaterial;
   sidewalk: THREE.MeshStandardMaterial;
   sand: THREE.MeshStandardMaterial;
   canalWall: THREE.MeshStandardMaterial;
@@ -111,14 +112,14 @@ export function createMiamiMaterialSet(): MiamiMaterialSet {
     128,
     128,
     (x, y) => {
-      const chip = hash2d(Math.floor(x / 3), Math.floor(y / 3));
-      if (chip > 0.92) return [228, 128, 108, 255];
-      if (chip < 0.07) return [64, 158, 168, 255];
-      const tileLine = x % 32 === 0 || y % 32 === 0 ? -16 : 0;
-      return [242 + tileLine, 237 + tileLine, 228 + tileLine, 255];
+      const chip = hash2d(x, y);
+      if (chip > 0.965) return [224, 134, 114, 255];
+      if (chip < 0.03) return [58, 162, 172, 255];
+      const tileLine = x % 64 === 0 || y % 64 === 0 ? -12 : 0;
+      return [240 + tileLine, 235 + tileLine, 226 + tileLine, 255];
     },
-    6,
-    6,
+    16,
+    16,
   );
 
   const stuccoBump = createNoiseDataTexture(
@@ -135,9 +136,31 @@ export function createMiamiMaterialSet(): MiamiMaterialSet {
 
   const neonMaterials: THREE.MeshStandardMaterial[] = [];
 
+  const asphaltEastWestTex = createNoiseDataTexture(
+    128,
+    128,
+    (x, y) => {
+      const grain = (hash2d(x, y) - 0.5) * 18;
+      const centerDash = Math.abs(y - 64) <= 2 && x % 32 < 18;
+      if (centerDash) return [236, 194, 78, 255];
+      const edgeLine = Math.abs(y - 8) <= 1 || Math.abs(y - 120) <= 1;
+      if (edgeLine) return [225, 228, 232, 255];
+      const base = 46 + grain;
+      return [base, base + 2, base + 5, 255];
+    },
+    10,
+    1,
+  );
+
   return {
     asphalt: new THREE.MeshStandardMaterial({
       map: asphaltTex,
+      roughnessMap: asphaltRough,
+      roughness: 0.82,
+      metalness: 0.06,
+    }),
+    asphaltEastWest: new THREE.MeshStandardMaterial({
+      map: asphaltEastWestTex,
       roughnessMap: asphaltRough,
       roughness: 0.82,
       metalness: 0.06,
