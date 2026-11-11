@@ -1,0 +1,11 @@
+$ npx playwright test tests/e2e/world.spec.ts
+# exit 0 — 2026-11-11T19:09:27.460Z
+
+
+Running 3 tests using 1 worker
+
+  ✓  1 tests/e2e/world.spec.ts:8:3 › Marazul Bay › has an ocean beach, canals with bridges, a causeway, a marina, palms and deco blocks (7.4s)
+  ✓  2 tests/e2e/world.spec.ts:80:3 › Marazul Bay › water is animated, and the ocean is rougher than the canals (3.5s)
+  ✓  3 tests/e2e/world.spec.ts:108:3 › Marazul Bay › time of day drives the sun, shadows, neon and lit windows (4.4s)
+
+  3 passed (15.7s)
