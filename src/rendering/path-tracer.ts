@@ -34,10 +34,13 @@ export class SunbreakPathTracer {
       this.tracer.bounces = 5;
       this.tracer.transmissiveBounces = 6;
       this.tracer.multipleImportanceSampling = true;
-      this.tracer.filterGlossyFactor = 0.35;
-      this.tracer.dynamicLowRes = true;
-      this.tracer.lowResScale = 0.35;
-      this.tracer.renderScale = Math.min(1.0, 1 / Math.max(1, this.renderer.getPixelRatio() * 0.85));
+      this.tracer.filterGlossyFactor = 0.4;
+      this.tracer.renderDelay = 0;
+      this.tracer.fadeDuration = 0;
+      this.tracer.minSamples = 1;
+      this.tracer.dynamicLowRes = false;
+      this.tracer.tiles.set(1, 1);
+      this.tracer.renderScale = 1.0;
       this.tracer.synchronizeRenderSize = true;
     }
 

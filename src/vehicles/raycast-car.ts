@@ -30,9 +30,9 @@ export class RaycastCar {
   private readonly tailLightMat: THREE.MeshStandardMaterial;
   private wheelSpinRad = 0;
   private readonly mass: number;
-  private readonly restLength = 0.44;
-  private readonly wheelRadius = 0.34;
-  private readonly maxTravel = 0.24;
+  private readonly restLength = 0.28;
+  private readonly wheelRadius = 0.26;
+  private readonly maxTravel = 0.18;
 
   constructor(
     id: string,
@@ -82,11 +82,11 @@ export class RaycastCar {
       roughness: 0.2,
     });
 
-    for (const sx of [-0.72, 0.72]) {
-      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.11, 0.08), headLightMat);
-      hl.position.set(sx, 0.62, -2.22);
-      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.11, 0.08), this.tailLightMat);
-      tl.position.set(sx, 0.68, 2.22);
+    for (const sx of [-0.68, 0.68]) {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.06), headLightMat);
+      hl.position.set(sx, 0.56, -2.14);
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.06), this.tailLightMat);
+      tl.position.set(sx, 0.62, 2.14);
       this.root.add(hl, tl);
     }
 
@@ -95,10 +95,10 @@ export class RaycastCar {
     const rimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.22, metalness: 0.85 });
 
     const wheelConfigs: Array<{ x: number; z: number; steer: boolean; drive: boolean }> = [
-      { x: -0.92, z: -1.42, steer: true, drive: true },
-      { x: 0.92, z: -1.42, steer: true, drive: true },
-      { x: -0.92, z: 1.38, steer: false, drive: true },
-      { x: 0.92, z: 1.38, steer: false, drive: true },
+      { x: -0.86, z: -1.36, steer: true, drive: true },
+      { x: 0.86, z: -1.36, steer: true, drive: true },
+      { x: -0.86, z: 1.34, steer: false, drive: true },
+      { x: 0.86, z: 1.34, steer: false, drive: true },
     ];
 
     for (const wc of wheelConfigs) {
@@ -124,12 +124,12 @@ export class RaycastCar {
       this.root.add(steerPivot);
 
       this.wheels.push({
-        localAnchor: new THREE.Vector3(wc.x, 0.68, wc.z),
+        localAnchor: new THREE.Vector3(wc.x, 0.52, wc.z),
         steer: wc.steer,
         drive: wc.drive,
         steerPivot,
         spinMesh,
-        prevCompression: 0.14,
+        prevCompression: 0.1,
       });
     }
 
@@ -144,8 +144,8 @@ export class RaycastCar {
       .setAngularDamping(2.4);
 
     this.body = physics.world.createRigidBody(rbDesc);
-    const colDesc = physics.rapier.ColliderDesc.cuboid(0.95, 0.44, 2.18)
-      .setTranslation(0, 0.68, 0)
+    const colDesc = physics.rapier.ColliderDesc.cuboid(0.95, 0.38, 2.18)
+      .setTranslation(0, 0.52, 0)
       .setMass(this.mass)
       .setFriction(0.35)
       .setRestitution(0.08);

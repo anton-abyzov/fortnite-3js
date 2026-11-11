@@ -135,7 +135,9 @@ export class TimeOfDaySystem {
     this.skyMesh.name = 'miami_physical_sky';
     this.scene.add(this.skyMesh);
 
-    this.equirectEnv = new ProceduralEquirectTexture(256, 128);
+    this.equirectEnv = new ProceduralEquirectTexture(512, 256);
+    this.equirectEnv.minFilter = THREE.LinearFilter;
+    this.equirectEnv.magFilter = THREE.LinearFilter;
     this.equirectEnv.name = 'miami_procedural_equirect_hdr';
 
     if (renderer) {
@@ -213,9 +215,9 @@ export class TimeOfDaySystem {
       color.g += st.sunColor.g * mieGlow;
       color.b += st.sunColor.b * mieGlow;
 
-      // Soft physical solar disk (~2.2 deg angular radius for realistic soft penumbra in PathTracer)
-      if (cosTheta > 0.9991) {
-        const diskPower = st.nightFactor > 0.7 ? 3.5 : 26.0;
+      // Smooth circular solar disk + corona for clean equirectangular sampling in PathTracer
+      const diskPower = Math.pow(Math.max(0, cosTheta), 950) * (st.nightFactor > 0.7 ? 2.5 : 14.0);
+      if (diskPower > 0.001) {
         color.r += st.sunColor.r * diskPower;
         color.g += st.sunColor.g * diskPower;
         color.b += st.sunColor.b * diskPower;

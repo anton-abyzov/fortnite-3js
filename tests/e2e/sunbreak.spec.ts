@@ -55,7 +55,7 @@ test.describe('Sunbreak: Biscayne - Full E2E Gameplay, Physics, Vehicles, Shops 
 
     await page.evaluate(() => {
       window.__SUNBREAK__!.teleportPlayer(28.5, 2.3, -22.0, 'grounded', Math.PI * 0.5);
-      window.__SUNBREAK__!.stepFrames(36, { forward: 1 });
+      window.__SUNBREAK__!.stepFrames(50, { forward: 1 });
     });
     snap = await page.evaluate(() => window.__SUNBREAK__!.getSnapshot());
     expect(snap.phase).toBe('grounded');
@@ -147,14 +147,18 @@ test.describe('Sunbreak: Biscayne - Full E2E Gameplay, Physics, Vehicles, Shops 
     expect(snap.timeHours).toBeCloseTo(18.35, 1);
     await page.screenshot({ path: join(ARTIFACT_DIR, '07-miami-sunset-realtime.png') });
 
-    // Activate WebGLPathTracer BVH multi-bounce global illumination and accumulate samples!
+    // Activate WebGLPathTracer BVH multi-bounce global illumination and accumulate >= 16 progressive samples!
     await page.evaluate(() => {
       window.__SUNBREAK__!.setRenderMode('pathtraced');
-      window.__SUNBREAK__!.stepFrames(10);
     });
+    await page.waitForFunction(
+      () => (window.__SUNBREAK__?.getSnapshot().pathTracerSamples ?? 0) >= 16,
+      undefined,
+      { timeout: 20000 },
+    );
     snap = await page.evaluate(() => window.__SUNBREAK__!.getSnapshot());
     expect(snap.renderMode).toBe('pathtraced');
-    expect(snap.pathTracerSamples).toBeGreaterThanOrEqual(4);
+    expect(snap.pathTracerSamples).toBeGreaterThanOrEqual(16);
     await page.screenshot({ path: join(ARTIFACT_DIR, '08-miami-sunset-bvh-pathtraced-gi.png') });
 
     // Return seamlessly to 60Hz real-time mode

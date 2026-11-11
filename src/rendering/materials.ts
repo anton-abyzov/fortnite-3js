@@ -74,8 +74,7 @@ export function createMiamiMaterialSet(): MiamiMaterialSet {
     64,
     64,
     (x, y) => {
-      const puddle = Math.sin(x * 0.19) * Math.cos(y * 0.17);
-      const val = puddle > 0.62 ? 55 : 195 + (hash2d(x, y) - 0.5) * 30;
+      const val = 196 + (hash2d(x, y) - 0.5) * 26;
       return [val, val, val, 255];
     },
     4,

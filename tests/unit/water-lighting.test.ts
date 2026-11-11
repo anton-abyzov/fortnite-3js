@@ -26,8 +26,8 @@ describe('Miami solar ephemeris, Gerstner water, and PBR material system', () =>
     tod.setPreset('sunset', new THREE.Vector3(10, 0, -20));
     expect(tod.state.hours).toBeCloseTo(TIME_PRESET_HOURS.sunset, 3);
     const hdr = tod.refreshEquirectForPathTracer();
-    expect(hdr.image.width).toBe(256);
-    expect(hdr.image.height).toBe(128);
+    expect(hdr.image.width).toBe(512);
+    expect(hdr.image.height).toBe(256);
   });
 
   it('samples deterministic Gerstner waves with unit normals, canal attenuation, and surf foam', () => {

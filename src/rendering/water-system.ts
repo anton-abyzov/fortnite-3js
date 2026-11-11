@@ -256,14 +256,13 @@ export class WaterSystem {
     const ptGeo = new THREE.PlaneGeometry(560, 560, 128, 128);
     ptGeo.rotateX(-Math.PI * 0.5);
     const ptMat = new THREE.MeshPhysicalMaterial({
-      color: 0xbaf8ff,
-      roughness: 0.045,
-      metalness: 0.0,
+      color: 0x22cad8,
+      emissive: new THREE.Color(0x063844),
+      emissiveIntensity: 0.36,
+      roughness: 0.13,
+      metalness: 0.08,
       ior: 1.333,
-      transmission: 0.9,
-      thickness: 2.8,
-      attenuationColor: new THREE.Color(0x12a8b8),
-      attenuationDistance: 4.2,
+      reflectivity: 0.96,
       clearcoat: 1.0,
       clearcoatRoughness: 0.03,
     });
