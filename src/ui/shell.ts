@@ -21,14 +21,16 @@ export const START_POINTS: readonly StartPoint[] = [
 ];
 
 const CONTROLS: readonly [string, string][] = [
-  ['W A S D', 'Move, steer the fall'],
-  ['Mouse', 'Look'],
-  ['Space', 'Jump, open parachute'],
+  ['W A S D', 'Move, steer, drive'],
+  ['Mouse', 'Look, fire, aim'],
+  ['Space', 'Jump, parachute'],
   ['Shift', 'Sprint'],
-  ['Alt', 'Walk'],
-  ['C', 'Crouch'],
-  ['E', 'Use'],
-  ['Esc', 'Menu'],
+  ['C', 'Crouch, slide'],
+  ['E', 'Use, open, get in'],
+  ['1 to 5', 'Weapons'],
+  ['R', 'Reload'],
+  ['Q  X', 'Heal, armor up'],
+  ['G', 'Throw a frag'],
 ];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {

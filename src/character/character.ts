@@ -7,6 +7,7 @@ import type { ClipBank } from './clips';
 import { CharacterMotor, type MotorInput } from './motor';
 import { CharacterRig, type Outfit } from './rig';
 import { Inventory } from '../gameplay/inventory';
+import { type Actions, Loadout, newActions } from '../gameplay/weapons';
 import type { Vehicle } from '../vehicles/vehicle';
 
 /** What the character's body is doing at the top level. Movement states live in the motor. */
@@ -52,6 +53,15 @@ export class Character {
   /** Money for the shops. */
   cash = 0;
   readonly inventory = new Inventory();
+  /** Weapons carried and what the hands are doing. The combat system runs it. */
+  readonly loadout = new Loadout();
+  /** What the hands should do this step: filled by the player's keys or a bot's brain. */
+  readonly act: Actions = newActions();
+  /** 0 from the hip .. 1 aimed down the sights. */
+  aiming = 0;
+  /** Who this character is fighting for the kill feed: the last one to hurt them, and when. */
+  lastHurtBy: Character | null = null;
+  kills = 0;
   alive = true;
   /** The vehicle this character sits in, and which seat. */
   vehicle: Vehicle | null = null;
@@ -60,6 +70,8 @@ export class Character {
   readonly seatQuat = new Quaternion();
   /** Seconds since the character was last hurt. */
   sinceHurt = 99;
+  /** Seconds since someone else last hurt them. */
+  sinceHurtBy = 99;
   events: CharacterEvents = {};
   /** Visual feet position this frame. */
   readonly visual = new Vector3();
@@ -182,6 +194,7 @@ export class Character {
 
   fixedUpdate(dt: number, env: CharacterEnv): void {
     this.sinceHurt += dt;
+    this.sinceHurtBy += dt;
     const m = this.motor;
     if (this.state === 'freefall' || this.state === 'chute') {
       // Flying: the motor glides by the numbers the drop gave it, and the body turns with the view.

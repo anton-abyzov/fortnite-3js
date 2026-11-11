@@ -127,6 +127,11 @@ export class Animator {
   seatClip = 'Sitting_Idle_Loop';
   /** Called in 'pose' mode after the base pose is applied, to shape the body procedurally. */
   poseFn: ((rig: CharacterRig, dt: number) => void) | null = null;
+  /**
+   * Called once the spine is posed, to place the arms on whatever is held. `weight` is how far the
+   * upper body is on the aim (0..1).
+   */
+  armFn: ((rig: CharacterRig, weight: number, dt: number) => void) | null = null;
   /** Clip that gives 'pose' mode its base pose. The rest pose when null. */
   poseClip: string | null = null;
   /** World offset of the body from `position`, for poses that turn about the hips and not the feet. */
@@ -478,6 +483,7 @@ export class Animator {
       rotateWorldAxis(b.spine3, _right, pitch * 0.3 - breathe * 0.4 + kick * 0.35 + fp * 0.5);
       if (Math.abs(fr) > 1e-4) rotateWorldAxis(b.spine2, _fwd, fr);
     }
+    if (this.armFn && this.mode !== 'dead' && this.mode !== 'pose') this.armFn(rig, this.upperW, dt);
 
     // --- Legs ------------------------------------------------------------------------------------
     const wantIk = grounded && this.lod === 0 && !this.playing('full') ? 1 : 0;

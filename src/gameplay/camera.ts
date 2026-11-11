@@ -22,6 +22,8 @@ export interface CameraSubject {
   aim: number;
   /** Extra field of view in degrees (sprint, speed). */
   fovKick: number;
+  /** Field of view when fully aimed, as a fraction of normal. 0.74 when not given. */
+  zoom?: number;
   /** Rigid body to leave out of the collision check, when the subject is a vehicle. */
   exclude?: import('@dimforge/rapier3d-compat').RigidBody;
   /** How quickly the pivot follows the subject vertically (1/s). */
@@ -72,6 +74,11 @@ export class ThirdPersonCamera {
   recoil(pitch: number, yaw: number): void {
     this.recoilPitch.velocity += pitch * 22;
     this.recoilYaw.velocity += yaw * 22;
+  }
+
+  /** How far the view is kicked off the aim right now, radians (up, sideways). */
+  get recoilOffset(): { pitch: number; yaw: number } {
+    return { pitch: this.recoilPitch.value, yaw: this.recoilYaw.value };
   }
 
   snap(): void {
@@ -136,7 +143,7 @@ export class ThirdPersonCamera {
     const sy = (Math.sin(t * 43.3 + 2.1) + Math.sin(t * 57.9)) * 0.5 * sh;
     cam.rotation.set(pitch + sy * 0.035, yaw + sx * 0.035, sx * 0.02, 'YXZ');
 
-    const fov = lerp(this.baseFov + s.fovKick, this.baseFov * 0.74, s.aim);
+    const fov = lerp(this.baseFov + s.fovKick, this.baseFov * (s.zoom ?? 0.74), s.aim);
     this.fov = damp(this.fov, fov, 10, dt);
     if (Math.abs(cam.fov - this.fov) > 0.01) {
       cam.fov = this.fov;

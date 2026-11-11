@@ -4,6 +4,8 @@ import type { Settings } from '../core/settings';
 import type { CameraSubject, ThirdPersonCamera } from './camera';
 import type { Interactable, Interactions } from './interactions';
 import { damp } from '../core/math';
+import { bestArmor, bestHeal } from './combat';
+import { WEAPON_IDS } from './items';
 
 const _look = { x: 0, y: 0 };
 
@@ -86,7 +88,9 @@ export class PlayerController {
     sub.height = damp(sub.height, m.swimming ? 1.25 : m.crouched ? 1.12 : 1.56, 10, dt);
     sub.distance = 3.3;
     sub.shoulder = 0.55 * this.shoulderSide * (1 - 0.25 * this.aim);
-    sub.aim = c.vehicle ? 0 : this.aim;
+    // The view closes in only as far as the weapon is actually up: not mid-reload, not at a sprint.
+    sub.aim = c.vehicle ? 0 : c.aiming;
+    sub.zoom = c.loadout.weapon?.zoom;
     sub.fovKick = this.sprintKick;
 
     c.aimYaw = this.camera.yaw;
@@ -99,6 +103,9 @@ export class PlayerController {
     const input = this.input;
     const c = this.character;
     const mi = c.input;
+    const act = c.act;
+    act.fire = false;
+    act.aim = false;
     if (this.locked || !c.alive) {
       mi.moveX = 0;
       mi.moveZ = 0;
@@ -165,7 +172,18 @@ export class PlayerController {
     mi.moveX = mx * pace;
     mi.moveZ = mz * pace;
     // Sprinting needs forward intent; nobody sprints backward.
-    mi.sprint = input.held('ShiftLeft') && fwd > 0 && this.aim < 0.5;
+    // Hands: fire, aim, reload, switch, heal, armor up, throw.
+    act.fire = input.held('Mouse0');
+    act.aim = input.held('Mouse2');
+    if (input.pressed('KeyR')) act.reload = true;
+    if (input.pressed('KeyG')) act.throw = true;
+    if (input.pressed('KeyQ')) act.use = bestHeal(c);
+    if (input.pressed('KeyX')) act.use = bestArmor(c);
+    for (let i = 0; i < WEAPON_IDS.length; i++) if (input.pressed(`Digit${i + 1}`)) act.slot = WEAPON_IDS[i]!;
+    const wheel = input.consumeWheel();
+    if (wheel !== 0) act.cycle = wheel;
+    // Nobody sprints while shooting, aiming or patching themselves up.
+    mi.sprint = input.held('ShiftLeft') && fwd > 0 && this.aim < 0.5 && !act.fire && c.loadout.using === null;
     mi.walk = input.held('AltLeft');
     if (input.pressed('KeyC')) this.crouchToggle = !this.crouchToggle;
     if (input.pressed('Space') && this.crouchToggle) this.crouchToggle = false;

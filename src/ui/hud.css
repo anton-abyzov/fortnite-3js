@@ -1,0 +1,471 @@
+/* The in-match display. Colours and type come from styles.css. */
+.hud {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  font-family: var(--body);
+}
+
+.hud.show {
+  opacity: 1;
+}
+
+/* Crosshair: four ticks that open with the weapon's spread, and a centre dot. */
+.cross {
+  --gap: 6px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.cross.show {
+  opacity: 1;
+}
+
+.cross .tick,
+.cross .dot {
+  position: absolute;
+  background: var(--foam);
+  box-shadow: 0 0 0 1px rgba(11, 29, 42, 0.55);
+  border-radius: 1px;
+}
+
+.cross .dot {
+  left: -1px;
+  top: -1px;
+  width: 2px;
+  height: 2px;
+}
+
+.cross .tick-n,
+.cross .tick-s {
+  left: -1px;
+  width: 2px;
+  height: 9px;
+}
+
+.cross .tick-e,
+.cross .tick-w {
+  top: -1px;
+  width: 9px;
+  height: 2px;
+}
+
+.cross .tick-n {
+  top: calc(-9px - var(--gap));
+}
+
+.cross .tick-s {
+  top: var(--gap);
+}
+
+.cross .tick-w {
+  left: calc(-9px - var(--gap));
+}
+
+.cross .tick-e {
+  left: var(--gap);
+}
+
+/* Hit marker: a small cross that flashes on a hit, warmer on a headshot, larger on a kill. */
+.hitmark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.7);
+  opacity: 0;
+  --mark: var(--foam);
+  background:
+    linear-gradient(var(--mark), var(--mark)) center top / 2px 8px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) center bottom / 2px 8px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) left center / 8px 2px no-repeat,
+    linear-gradient(var(--mark), var(--mark)) right center / 8px 2px no-repeat;
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+}
+
+.hitmark.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  transition: none;
+}
+
+.hitmark.head {
+  --mark: var(--sun);
+}
+
+.hitmark.kill {
+  --mark: var(--coral);
+  width: 36px;
+  height: 36px;
+}
+
+/* Long-range optic: the view through a ring. */
+.scope {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  background:
+    linear-gradient(rgba(244, 251, 250, 0.75), rgba(244, 251, 250, 0.75)) center / 1px 46vh no-repeat,
+    linear-gradient(rgba(244, 251, 250, 0.75), rgba(244, 251, 250, 0.75)) center / 46vh 1px no-repeat,
+    radial-gradient(circle at center, transparent 0, transparent 33vh, rgba(4, 12, 18, 0.97) 33.4vh);
+}
+
+.scope.show {
+  opacity: 1;
+}
+
+/* Being hurt: a red edge, and an arc on the side the blow came from. */
+.hurt-vignette {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(255, 77, 94, 0.55) 100%);
+}
+
+.hurt-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300px;
+  height: 300px;
+  opacity: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from -24deg, rgba(255, 77, 94, 0.9) 0deg, rgba(255, 77, 94, 0.9) 48deg, transparent 48deg);
+  mask: radial-gradient(circle, transparent 0, transparent 138px, #000 139px, #000 150px, transparent 151px);
+}
+
+/* Bottom left: armor, health, supplies, cash. */
+.vitals {
+  position: absolute;
+  left: 28px;
+  bottom: 26px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+}
+
+.bar-armor {
+  height: 16px;
+}
+
+.bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  transition: width 0.18s ease;
+}
+
+.bar-fill.health {
+  background: linear-gradient(90deg, #2fd08a, var(--teal));
+}
+
+.bar-fill.health.low {
+  background: linear-gradient(90deg, var(--danger), var(--coral));
+}
+
+.bar-fill.armor {
+  background: linear-gradient(90deg, var(--aqua), #6ad7ff);
+}
+
+.bar-label,
+.bar-num {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 700 11px/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  mix-blend-mode: normal;
+  text-shadow: 0 0 6px rgba(244, 251, 250, 0.6);
+}
+
+.bar-label {
+  left: 9px;
+}
+
+.bar-num {
+  right: 9px;
+  font-family: var(--mono);
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+.pouch {
+  display: flex;
+  gap: 5px;
+}
+
+.pouch-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 2px 4px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  opacity: 0.4;
+  backdrop-filter: blur(6px);
+}
+
+.pouch-item.have {
+  opacity: 1;
+}
+
+.pouch-name {
+  font: 600 9px/1 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.72);
+}
+
+.pouch-count {
+  font: 700 13px/1 var(--mono);
+}
+
+.key-small {
+  min-width: 16px;
+  padding: 1px 4px;
+  font-size: 9px;
+}
+
+.cash {
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  font: 700 13px/1.2 var(--mono);
+  color: var(--sun);
+}
+
+/* Bottom right: the weapon in hand and the ones carried. */
+.arms {
+  position: absolute;
+  right: 28px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.weapon-name {
+  --tier: transparent;
+  font: 700 15px/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(11, 29, 42, 0.8);
+  padding-right: 10px;
+  border-right: 3px solid var(--tier);
+}
+
+.weapon-name[data-tier]:not([data-tier=''])::after {
+  content: attr(data-tier);
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--tier);
+}
+
+.ammo {
+  display: none;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--mono);
+  text-shadow: 0 1px 8px rgba(11, 29, 42, 0.85);
+}
+
+.ammo.show {
+  display: flex;
+}
+
+.ammo-mag {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ammo-mag.low {
+  color: var(--coral);
+}
+
+.ammo-sep,
+.ammo-reserve {
+  font-size: 18px;
+  color: rgba(244, 251, 250, 0.7);
+}
+
+.rack {
+  display: flex;
+  gap: 5px;
+}
+
+.slot {
+  --tier: transparent;
+  position: relative;
+  width: 98px;
+  padding: 6px 6px 8px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  opacity: 0.38;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  backdrop-filter: blur(6px);
+}
+
+.slot.have {
+  opacity: 0.85;
+}
+
+.slot.on {
+  opacity: 1;
+  border-color: var(--foam);
+  background: rgba(18, 48, 63, 0.82);
+}
+
+.slot .key-small {
+  align-self: flex-start;
+}
+
+.slot-name {
+  font: 600 9px/1.1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-tier {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--tier);
+}
+
+/* Reload and item use. */
+.reload {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  width: 190px;
+  height: 20px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.reload.show {
+  opacity: 1;
+}
+
+.reload-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(90deg, var(--aqua), var(--teal));
+}
+
+.reload-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 10px/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 4px rgba(11, 29, 42, 0.9);
+}
+
+/* Notes at the right edge. */
+.toasts {
+  position: absolute;
+  right: 28px;
+  bottom: 190px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.toast {
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-right: 3px solid var(--teal);
+  font: 600 12px/1.2 var(--body);
+  animation: toast-in 0.18s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.toast.weapon {
+  border-right-color: var(--sun);
+}
+
+.toast.cash {
+  border-right-color: #4fbf6b;
+}
+
+.toast.kill {
+  border-right-color: var(--coral);
+  font-weight: 700;
+}
+
+.toast.out {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+@media (max-width: 900px) {
+  .slot {
+    width: 62px;
+  }
+
+  .vitals {
+    width: 220px;
+  }
+}

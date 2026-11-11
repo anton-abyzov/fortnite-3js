@@ -1,6 +1,11 @@
 import { Vector3 } from 'three';
 import type { Character } from '../character/character';
 import type { Game } from '../game';
+import { randomOutfit } from '../character/rig';
+import { isItemId } from '../gameplay/items';
+import { TIERS } from '../gameplay/weapons';
+import { angleDiff } from './math';
+import { Rng } from './rng';
 
 const _dir = new Vector3();
 
@@ -43,6 +48,20 @@ export interface DebugApi {
   resetMetrics(): void;
   /** The player's movement and animation state. */
   player(): Record<string, any> | null;
+  /** The player's weapon and what their hands are doing. */
+  weapon(): Record<string, any> | null;
+  /** Hand the player an item by id. Returns how many they took. */
+  give(item: string, count?: number, tier?: number): number;
+  /** Stand a combatant on the ground at a point, as a target. Returns its id. */
+  spawnTarget(x: number, z: number, yaw?: number): number;
+  /** Every combatant: where they are and how they are. */
+  characters(): Record<string, any>[];
+  /** How far the crosshair is from a world point: the angles, and the mouse movement that closes them. */
+  aimAt(x: number, y: number, z: number): { yaw: number; pitch: number; dx: number; dy: number };
+  /** Containers and items on the ground. */
+  loot(): { containers: Record<string, any>[]; pickups: Record<string, any>[] };
+  /** Effects made so far, by kind. */
+  fx(): Record<string, number>;
   /** Let mouse movement turn the view without pointer lock (headless browsers cannot lock the pointer). */
   setFreeLook(on: boolean): void;
   /** Hold the camera at an offset from the player (for filming animation). Pass no arguments to release. */
@@ -133,6 +152,82 @@ export function installDebug(game: Game): DebugApi {
     setFreeLook: (on) => {
       game.input.freeLook = on;
     },
+    weapon: () => {
+      const c = game.player;
+      if (!c) return null;
+      const lo = c.loadout;
+      const def = lo.weapon;
+      const held = lo.heldNow;
+      return {
+        id: lo.current,
+        name: def ? def.id : null,
+        tier: held ? TIERS[held.tier]!.name : null,
+        mag: held?.mag ?? 0,
+        magSize: def?.mag ?? 0,
+        reserve: def ? c.inventory.count(def.ammo) : 0,
+        reloading: lo.reloading > 0,
+        drawing: lo.drawing > 0,
+        using: lo.using,
+        aiming: c.aiming,
+        bloom: lo.bloom,
+        spread: game.combat.spreadOf(c),
+        recoil: game.camera.recoilOffset.pitch,
+        shots: lo.shots,
+        hits: lo.hits,
+        headshots: lo.headshots,
+        carried: lo.carried(),
+        lastHit: game.combat.lastHit,
+        lastDamage: game.combat.lastDamage,
+        lastHeadshot: game.combat.lastHeadshot,
+        grenades: game.combat.live,
+        fov: game.engine.camera.fov,
+      };
+    },
+    give: (item, count, tier = 0) => {
+      const c = game.player;
+      if (!c || !isItemId(item)) return 0;
+      return game.grant(c, item, count, tier);
+    },
+    spawnTarget: (x, z, yaw = 0) => {
+      const id = game.characters.length;
+      const c = game.spawnCharacter(`Rival ${id}`, false, x, z, yaw, randomOutfit(new Rng(game.options.seed + id * 7717)));
+      return c.id;
+    },
+    characters: () =>
+      game.characters.map((c) => ({
+        id: c.id,
+        name: c.name,
+        player: c.isPlayer,
+        x: c.position.x,
+        y: c.position.y,
+        z: c.position.z,
+        eye: c.position.y + c.eyeHeight,
+        health: c.health,
+        armor: c.armor,
+        alive: c.alive,
+        state: c.state,
+        kills: c.kills,
+        weapon: c.loadout.current,
+        cash: c.cash,
+        items: { ...c.inventory.counts },
+      })),
+    aimAt: (x, y, z) => {
+      const cam = game.engine.camera;
+      const dx = x - cam.position.x;
+      const dy = y - cam.position.y;
+      const dz = z - cam.position.z;
+      const len = Math.hypot(dx, dy, dz) || 1;
+      const yaw = angleDiff(game.camera.yaw, Math.atan2(-dx, -dz));
+      const pitch = Math.asin(dy / len) - game.camera.pitch;
+      // The same factor the camera uses to turn mouse pixels into radians.
+      const k = 0.0022 * game.settings.data.sensitivity * (cam.fov / game.camera.baseFov);
+      return { yaw, pitch, dx: -yaw / k, dy: (-pitch / k) * (game.settings.data.invertY ? -1 : 1) };
+    },
+    loot: () => ({
+      containers: game.loot.containers.map((c) => ({ id: c.id, kind: c.kind, x: c.x, y: c.y, z: c.z, roof: c.roof, opened: c.opened })),
+      pickups: game.loot.pickups.map((p) => ({ id: p.id, item: p.item, count: p.count, tier: p.tier, x: p.x, y: p.y, z: p.z })),
+    }),
+    fx: () => ({ ...game.fx.counts, tracers: game.fx.tracers, decals: game.fx.decals, alive: game.fx.alive }),
     player: () => {
       const c = game.player;
       if (!c) return null;

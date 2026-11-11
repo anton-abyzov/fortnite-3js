@@ -12,11 +12,13 @@ import { ThirdPersonCamera } from './gameplay/camera';
 import { Drop } from './gameplay/drop';
 import { Match } from './gameplay/match';
 import { Interactions } from './gameplay/interactions';
-import { ITEMS, type ItemId } from './gameplay/items';
+import { Combat } from './gameplay/combat';
+import { ITEMS, type ConsumableId, type ItemId, type WeaponId } from './gameplay/items';
 import { PlayerController } from './gameplay/player';
 import { Physics } from './physics/physics';
 import { Effects } from './render/particles';
 import type { Vehicle } from './vehicles/vehicle';
+import { type Container, Loot } from './world/loot';
 import { World } from './world/world';
 
 export type Phase = 'boot' | 'menu' | 'loading' | 'match' | 'ended';
@@ -45,6 +47,16 @@ export interface GameEvents extends Record<string, unknown> {
   grant: { to: Character; item: ItemId; count: number };
   /** A character came down from the drop, onto something solid or into water. */
   landed: { who: Character; water: boolean };
+  /** A weapon was fired, from this point. */
+  shot: { by: Character; weapon: WeaponId; x: number; y: number; z: number };
+  /** Something exploded. */
+  blast: { x: number; y: number; z: number; by: Character | null };
+  /** A character finished using a bandage, a medkit, a drink or a vest. */
+  used: { who: Character; item: ConsumableId };
+  /** A character picked up money. */
+  cash: { to: Character; amount: number };
+  /** A loot container was opened. */
+  opened: { container: Container; by: Character | null };
 }
 
 export interface GameOptions {
@@ -69,6 +81,10 @@ export class Game {
   /** Sparks, smoke, spray: `fx.burst(kind, x, y, z)`. */
   readonly fx = new Effects();
   readonly match = new Match(this);
+  /** Shooting, reloading, healing and grenades for every combatant. */
+  combat!: Combat;
+  /** Containers and everything lying on the ground. */
+  loot!: Loot;
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
   readonly interactions = new Interactions();
@@ -109,7 +125,13 @@ export class Game {
     this.camera = new ThirdPersonCamera(this.engine.camera, this.physics);
     this.camera.baseFov = this.settings.data.fov;
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
+    this.fx.attach(this.engine.scene, this.engine.camera, this.canvas);
     this.addSystem(this.fx);
+    progress(0.74, 'Stocking the coolers');
+    // Its places come from physics rays, which see the city only after a step.
+    this.physics.step();
+    this.combat = this.addSystem(await Combat.create(this));
+    this.loot = this.addSystem(await Loot.create(this));
     this.drop = this.addSystem(new Drop(this));
     // `?without=cars,boats,shops` leaves parts of the world out, to look at one part alone. Each part
     // loads as its own chunk, so one that is left out is never fetched.
@@ -163,18 +185,37 @@ export class Game {
     }
     target.health = Math.max(0, target.health - left);
     target.sinceHurt = 0;
+    if (info.by && info.by !== target) {
+      target.lastHurtBy = info.by;
+      target.sinceHurtBy = 0;
+    }
     if (info.dir) target.anim.flinch(info.dir.x, info.dir.z, Math.min(1, amount / 40));
     this.events.emit('hurt', { target, amount, info });
     if (target.health <= 0) {
       target.alive = false;
+      // The storm and long falls finish what someone else started: they get the credit.
+      if (!info.by && target.lastHurtBy && target.sinceHurtBy < 12) info.by = target.lastHurtBy;
+      if (info.by && info.by !== target) info.by.kills++;
       target.vehicle?.exit(target);
       this.events.emit('kill', { victim: target, info });
     }
     return amount;
   }
 
-  /** Give a character items (a pickup, a purchase). Returns how many they could take. */
-  grant(to: Character, item: ItemId, count: number = ITEMS[item].stack): number {
+  /**
+   * Give a character items (a pickup, a purchase). Returns how many they could take. A weapon comes
+   * in a `tier`; one already carried is only taken when the new one is better.
+   */
+  grant(to: Character, item: ItemId, count: number = ITEMS[item].stack, tier = 0): number {
+    if (ITEMS[item].kind === 'weapon') {
+      const id = item as WeaponId;
+      if (!to.loadout.give(id, tier)) return 0;
+      to.inventory.counts[id] = 1;
+      // Bare hands: draw it.
+      if (!to.loadout.current && !to.act.slot) to.act.slot = id;
+      this.events.emit('grant', { to, item, count: 1 });
+      return 1;
+    }
     const taken = to.inventory.add(item, count);
     if (taken > 0) this.events.emit('grant', { to, item, count: taken });
     return taken;
@@ -285,6 +326,7 @@ export class Game {
       this.viewTarget.set(40, 10, 0);
       camera.lookAt(this.viewTarget);
     }
+    this.fx.daylight = 1 - this.world.sky.night;
     const ground = this.world.field.heightAt(camera.position.x, camera.position.z);
     this.world.update(this.engine.time, camera, this.viewTarget, Math.max(0, camera.position.y - ground));
     this.input.endFrame();
