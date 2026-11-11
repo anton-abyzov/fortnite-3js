@@ -17,8 +17,12 @@ export function watchConsole(page: Page): ConsoleWatch {
   return watch;
 }
 
+/** `EYEWALL_WITHOUT=cars,boats` opens the game without those parts, for checking one part while another is in pieces. */
+const WITHOUT = process.env['EYEWALL_WITHOUT'] ?? '';
+
 export async function openGame(page: Page, query = ''): Promise<void> {
-  await page.goto(`/${query ? `?${query}` : ''}`);
+  const all = [query, WITHOUT ? `without=${WITHOUT}` : ''].filter(Boolean).join('&');
+  await page.goto(`/${all ? `?${all}` : ''}`);
   await page.waitForFunction(() => window.__eyewall?.ready === true, undefined, { timeout: 120_000 });
 }
 

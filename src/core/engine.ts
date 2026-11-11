@@ -33,6 +33,9 @@ export class Engine {
   private running = false;
   private handlers: LoopHandlers | null = null;
   private raf = 0;
+  private watchdog = 0;
+  /** When the last frame was drawn, as opposed to when the simulation last advanced. */
+  private lastFrame = 0;
   private fpsAccum = 0;
   private fpsFrames = 0;
   /**
@@ -150,26 +153,40 @@ export class Engine {
     if (this.running) return;
     this.running = true;
     this.last = performance.now();
+    this.lastFrame = this.last;
     const tick = (now: number): void => {
       if (!this.running) return;
       this.raf = requestAnimationFrame(tick);
       // The first callback can carry a timestamp from before `start` ran (the page was busy loading),
       // and a negative step would freeze the simulation until the debt was paid.
       const realDt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
-      this.frameMs = Math.max(0, now - this.last);
+      this.frameMs = Math.max(0, now - this.lastFrame);
+      this.lastFrame = now;
       this.last = now;
-      this.step(realDt * this.timeScale, realDt);
+      this.step(realDt * this.timeScale, realDt, Math.min(1, this.frameMs / 1000));
     };
     this.raf = requestAnimationFrame(tick);
+    // When frames arrive seconds apart (a starved GPU), the world must not run in slow motion: keys
+    // still have to act and clocks still have to count. So while no frame has come for a while, the
+    // simulation is advanced from a timer, and the next frame draws wherever things have got to.
+    this.watchdog = window.setInterval(() => {
+      if (!this.running || document.hidden) return;
+      const now = performance.now();
+      if (now - this.last < 90) return;
+      const realDt = Math.min(0.1, (now - this.last) / 1000);
+      this.last = now;
+      this.advance(realDt * this.timeScale);
+    }, 30);
   }
 
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+    window.clearInterval(this.watchdog);
   }
 
-  /** Advance the game by `dt` seconds of game time and draw one frame. */
-  step(dt: number, realDt = dt): void {
+  /** Run the fixed steps that `dt` seconds of game time call for, then the per-frame handlers. */
+  private advance(dt: number): void {
     const h = this.handlers;
     if (!h) return;
     this.accumulator += dt;
@@ -182,12 +199,21 @@ export class Engine {
     }
     if (this.accumulator > FIXED_DT * 2) this.accumulator = 0;
     h.frame(dt, this.accumulator / FIXED_DT);
+  }
+
+  /**
+   * Advance the game by `dt` seconds of game time and draw one frame. `frameDt` is the real time
+   * since the last frame was drawn, for the frame-rate count.
+   */
+  step(dt: number, realDt = dt, frameDt = realDt): void {
+    if (!this.handlers) return;
+    this.advance(dt);
     if (this.renderEnabled) {
       this.renderer.info.reset();
       this.post.render(realDt);
     }
     this.frameCount++;
-    this.fpsAccum += realDt;
+    this.fpsAccum += frameDt;
     this.fpsFrames++;
     if (this.recordFrames) this.frameTimes.push(this.frameMs);
     if (this.running && this.adaptive && this.renderEnabled && !document.hidden) {

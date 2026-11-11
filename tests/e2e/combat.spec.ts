@@ -70,17 +70,25 @@ test.describe('weapons, combat and loot', () => {
       all.sort((a, b) => Math.hypot(a['x'] + 60, a['z'] - 13) - Math.hypot(b['x'] + 60, b['z'] - 13));
       const level = (c: Record<string, any>): boolean => [1, 2, 3, 4, 5, 6].every((k) => Math.abs(api.probe(c['x'], c['z'] + k).ground - c['y']) < 0.2);
       const c = all.find(level)!;
-      // Start a few steps south of it, facing it (yaw 0 faces north).
-      api.startAt(c['x'], c['z'] + 5, 0);
+      // Start a few steps south of it, just out of reach, facing it (yaw 0 faces north).
+      api.startAt(c['x'], c['z'] + 3.6, 0);
       return c;
     });
     await freeLook(page);
     expect((await weapon(page)).id, 'starts unarmed').toBeNull();
     expect((await hud(page))['weapon']).toBe('Unarmed');
+    expect((await player(page)).prompt ?? '', 'out of reach to begin with').not.toMatch(/^Open/);
 
-    await page.keyboard.down('KeyW');
-    await expect.poll(async () => (await player(page)).prompt, { timeout: 30_000, intervals: [50] }).toMatch(/^Open (cooler|duffel bag)$/);
-    await page.keyboard.up('KeyW');
+    // Walk up in short steps, so the walk ends inside the container's reach however slowly the page answers.
+    let prompt = '';
+    for (let i = 0; i < 40 && !/^Open (cooler|duffel bag)$/.test(prompt); i++) {
+      await page.keyboard.down('KeyW');
+      await page.waitForTimeout(120);
+      await page.keyboard.up('KeyW');
+      await page.waitForTimeout(100);
+      prompt = (await player(page)).prompt ?? '';
+    }
+    expect(prompt).toMatch(/^Open (cooler|duffel bag)$/);
     await page.screenshot({ path: 'evidence/t06-container.png' });
     await page.keyboard.press('KeyE');
     await expect.poll(async () => (await page.evaluate((id) => window.__eyewall!.loot().containers.find((c) => c['id'] === id)!['opened'], box['id'])) as boolean, { timeout: 20_000 }).toBe(true);
@@ -228,13 +236,17 @@ test.describe('weapons, combat and loot', () => {
     const [a, b] = await page.evaluate(() => {
       const api = window.__eyewall!;
       const first = api.spawnTarget(-78, 13, -Math.PI / 2);
-      const second = api.spawnTarget(-74, 16.5, -Math.PI / 2);
+      const second = api.spawnTarget(-73, 11.6, -Math.PI / 2);
       const c = api.game.characters.find((x) => x.id === first)!;
       api.game.grant(c, 'pistol', 1, 2);
       api.game.grant(c, 'ammo_light', 36);
       c.cash = 55;
       return [first, second];
     });
+    // Both stand on the pavement with the player, not on a roof.
+    const street = (await player(page)).y;
+    await expect.poll(async () => Math.abs((await rival(page, a!)).y - street), { timeout: 20_000 }).toBeLessThan(0.3);
+    await expect.poll(async () => Math.abs((await rival(page, b!)).y - street), { timeout: 20_000 }).toBeLessThan(0.3);
     await select(page, 'Digit3', 'rifle');
     await page.mouse.down({ button: 'right' });
     await expect.poll(async () => (await weapon(page)).aiming, { timeout: 20_000 }).toBeGreaterThan(0.98);
