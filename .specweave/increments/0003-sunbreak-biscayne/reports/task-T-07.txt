@@ -1,0 +1,32 @@
+$ npm run build && npm run test:e2e
+# exit 0 — 2026-11-11T20:29:09.738Z
+
+
+> sunbreak-biscayne@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 179 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.83 kB │ gzip:     0.45 kB
+dist/assets/index-C98FqHTC.css      7.96 kB │ gzip:     2.14 kB
+dist/assets/index-B0YM6qrf.js   5,477.98 kB │ gzip: 2,006.96 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 3500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 270ms
+
+> sunbreak-biscayne@0.1.0 test:e2e
+> PWDEBUG=0 PLAYWRIGHT_HTML_OPEN=never playwright test
+
+
+Running 1 test using 1 worker
+
+  ✓  1 tests/e2e/sunbreak.spec.ts:8:3 › Sunbreak: Biscayne - Full E2E Gameplay, Physics, Vehicles, Shops & GPU Path Tracer › boots cleanly, drops via canopy, enters shops, drives cars/jetskis/boats, fights bots, and path-traces GI (8.2s)
+
+  1 passed (8.7s)
