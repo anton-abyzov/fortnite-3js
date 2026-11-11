@@ -21,6 +21,15 @@ export class Input {
   enabled = true;
   private element: HTMLElement;
   private wantLock = false;
+  /**
+   * A pointer-lock request made from a click was refused, so the page is somewhere that does not allow
+   * it (an embedded preview, a locked-down browser). The view then follows the pointer instead, and
+   * keeps turning while the pointer rests near the left or right edge.
+   */
+  lockDenied = false;
+  private everLocked = false;
+  private gestureRequest = false;
+  private edgeAt = 0;
 
   constructor(element: HTMLElement) {
     this.element = element;
@@ -33,9 +42,7 @@ export class Input {
     element.addEventListener('wheel', this.onWheel, { passive: true });
     element.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('pointerlockchange', this.onLockChange);
-    document.addEventListener('pointerlockerror', () => {
-      this.locked = false;
-    });
+    document.addEventListener('pointerlockerror', () => this.onLockRefused());
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
@@ -99,8 +106,18 @@ export class Input {
     this.wheel += Math.sign(e.deltaY);
   };
 
+  private onLockRefused(): void {
+    this.locked = false;
+    // Browsers also refuse a lock asked for without a click, or too soon after Escape. Neither means
+    // the lock is unavailable, so only a refused click on a page that never had the lock counts.
+    if (!this.gestureRequest || this.everLocked || this.free) return;
+    this.lockDenied = true;
+    this.freeLook = true;
+  }
+
   private onLockChange = (): void => {
     this.locked = document.pointerLockElement === this.element;
+    if (this.locked) this.everLocked = true;
     this.lastX = Number.NaN;
     // A lock that was asked for before free look was switched on can still arrive: give it straight back.
     if (this.locked && this.free) {
@@ -130,11 +147,12 @@ export class Input {
 
   private requestLock(): void {
     if (this.free) return;
+    this.gestureRequest = navigator.userActivation?.isActive ?? true;
     try {
       const result = this.element.requestPointerLock() as unknown;
       if (result instanceof Promise) result.catch(() => undefined);
     } catch {
-      // Pointer lock is unavailable (headless or embedded); freeLook covers that case.
+      this.onLockRefused();
     }
   }
 
@@ -162,6 +180,18 @@ export class Input {
 
   /** Mouse movement since the last call, in pixels. */
   consumeLook(out: { x: number; y: number }): void {
+    if (this.lockDenied && this.free && !Number.isNaN(this.lastX)) {
+      // The pointer cannot leave the page, so resting it near a side edge keeps the view turning.
+      const now = performance.now();
+      const dt = Math.min(0.1, Math.max(0, (now - this.edgeAt) / 1000));
+      this.edgeAt = now;
+      const w = window.innerWidth;
+      const margin = Math.max(48, w * 0.14);
+      let push = 0;
+      if (this.lastX < margin) push = this.lastX / margin - 1;
+      else if (this.lastX > w - margin) push = 1 - (w - this.lastX) / margin;
+      this.lookX += push * 1100 * dt;
+    }
     out.x = this.enabled ? this.lookX : 0;
     out.y = this.enabled ? this.lookY : 0;
     this.lookX = 0;

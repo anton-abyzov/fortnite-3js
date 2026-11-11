@@ -3,6 +3,8 @@ import { FIXED_DT, MAX_STEPS_PER_FRAME } from './config';
 import type { Settings } from './settings';
 import { PostFX } from '../render/post';
 
+const MIN_RENDER_SCALE = 0.4;
+
 export interface LoopHandlers {
   /** Runs at exactly 60 Hz of game time. Physics and gameplay live here. */
   fixed(dt: number): void;
@@ -19,6 +21,8 @@ export class Engine {
   readonly canvas: HTMLCanvasElement;
   /** Game time multiplier. 0 pauses the simulation while rendering continues. */
   timeScale = 1;
+  /** Draw the scene. Off while something opaque covers the canvas (the title screen). */
+  renderEnabled = true;
   /** Seconds of game time simulated so far. */
   time = 0;
   frameCount = 0;
@@ -31,6 +35,19 @@ export class Engine {
   private raf = 0;
   private fpsAccum = 0;
   private fpsFrames = 0;
+  /**
+   * Fraction of the preset's resolution being drawn. The engine lowers it when frames run slow and
+   * raises it again when there is room, so the game stays playable on a busy or modest GPU.
+   */
+  renderScale = 1;
+  /** Let the engine change `renderScale` by itself. */
+  adaptive = true;
+  /** Called when the lowest resolution is still too slow: the game can drop to a lighter preset. */
+  onStruggle: (() => void) | null = null;
+  private slowWindows = 0;
+  private fastWindows = 0;
+  private raiseAfter = 6;
+  private stalls = 0;
   /** Recent frame times in ms, for the performance test. */
   readonly frameTimes: number[] = [];
   recordFrames = false;
@@ -65,7 +82,48 @@ export class Engine {
   private applyPixelRatio(): void {
     const cap = this.settings.quality.pixelRatio;
     const dpr = window.devicePixelRatio || 1;
-    this.renderer.setPixelRatio(cap < 1 ? cap : Math.min(dpr, cap));
+    this.renderer.setPixelRatio((cap < 1 ? cap : Math.min(dpr, cap)) * this.renderScale);
+  }
+
+  /** Draw at a fraction of the preset's resolution (0.4 to 1). */
+  setRenderScale(scale: number): void {
+    const next = Math.max(MIN_RENDER_SCALE, Math.min(1, scale));
+    if (Math.abs(next - this.renderScale) < 0.005) return;
+    this.renderScale = next;
+    this.applyPixelRatio();
+    this.resize();
+  }
+
+  /** Runs twice a second with the frame rate of the last half second. */
+  private govern(): void {
+    if (!this.adaptive || !this.renderEnabled || document.hidden) {
+      this.slowWindows = 0;
+      this.fastWindows = 0;
+      return;
+    }
+    if (this.fps < 42) {
+      this.slowWindows++;
+      this.fastWindows = 0;
+    } else if (this.fps > 56) {
+      this.fastWindows++;
+      this.slowWindows = 0;
+    } else {
+      this.slowWindows = 0;
+      this.fastWindows = 0;
+    }
+    if (this.slowWindows >= 2) {
+      this.slowWindows = 0;
+      if (this.renderScale > MIN_RENDER_SCALE + 0.005) {
+        // A step up that did not hold makes the next try wait longer.
+        this.raiseAfter = Math.min(120, this.raiseAfter * 2);
+        this.setRenderScale(this.renderScale * (this.fps < 24 ? 0.7 : 0.85));
+      } else {
+        this.onStruggle?.();
+      }
+    } else if (this.fastWindows >= this.raiseAfter && this.renderScale < 1) {
+      this.fastWindows = 0;
+      this.setRenderScale(this.renderScale * 1.12);
+    }
   }
 
   applyQuality(): void {
@@ -124,16 +182,30 @@ export class Engine {
     }
     if (this.accumulator > FIXED_DT * 2) this.accumulator = 0;
     h.frame(dt, this.accumulator / FIXED_DT);
-    this.renderer.info.reset();
-    this.post.render(realDt);
+    if (this.renderEnabled) {
+      this.renderer.info.reset();
+      this.post.render(realDt);
+    }
     this.frameCount++;
     this.fpsAccum += realDt;
     this.fpsFrames++;
     if (this.recordFrames) this.frameTimes.push(this.frameMs);
+    if (this.running && this.adaptive && this.renderEnabled && !document.hidden) {
+      // Frames this slow mean the GPU is starved (shared with something heavy): shed work at once
+      // instead of waiting for the half-second averages, which take many slow frames to fill.
+      this.stalls = this.frameMs > 180 ? this.stalls + 1 : 0;
+      if (this.stalls >= 3) {
+        this.stalls = 0;
+        this.raiseAfter = Math.min(120, this.raiseAfter * 2);
+        this.setRenderScale(MIN_RENDER_SCALE);
+        this.onStruggle?.();
+      }
+    }
     if (this.fpsAccum >= 0.5) {
       this.fps = this.fpsFrames / this.fpsAccum;
       this.fpsAccum = 0;
       this.fpsFrames = 0;
+      if (this.running) this.govern();
     }
   }
 

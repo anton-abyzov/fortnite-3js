@@ -77,6 +77,8 @@ export function installDebug(game: Game): DebugApi {
       renderer: rendererName(game),
       drawCalls: game.engine?.renderer.info.render.calls ?? 0,
       triangles: game.engine?.renderer.info.render.triangles ?? 0,
+      quality: game.settings.data.quality,
+      renderScale: game.engine?.renderScale ?? 1,
       hour: game.world?.sky.hour ?? 0,
       night: game.world?.sky.night ?? 0,
     }),

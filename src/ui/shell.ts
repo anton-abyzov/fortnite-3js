@@ -45,6 +45,8 @@ export class Shell {
   private readonly promptText: HTMLElement;
   private readonly pause: HTMLElement;
   private readonly place: HTMLElement;
+  private readonly note: HTMLElement;
+  private toldFreeLook = false;
   private start = 0;
   private shownPrompt = '';
   private timer = 0;
@@ -60,7 +62,8 @@ export class Shell {
     this.promptText = el('span', 'prompt-text');
     this.prompt.append(this.promptText);
     this.place = el('div', 'place');
-    root.append(this.place, this.prompt, this.pause, this.title);
+    this.note = el('div', 'note');
+    root.append(this.place, this.note, this.prompt, this.pause, this.title);
     game.events.on('phase', () => this.sync());
     document.addEventListener('pointerlockchange', () => this.sync());
     window.addEventListener('keydown', (e) => {
@@ -151,6 +154,8 @@ export class Shell {
     // A debug camera view is for looking at the world, so the title steps aside.
     const menu = g.phase === 'menu' && !g.cameraOverride;
     this.title.classList.toggle('hidden', !menu);
+    // The title art covers the whole canvas, so the city behind it need not be drawn.
+    if (g.engine) g.engine.renderEnabled = !menu;
     const input = g.input;
     const playing = g.phase === 'match';
     // Without the pointer the mouse cannot turn the view, so say how to get it back.
@@ -160,6 +165,13 @@ export class Shell {
 
   private tick(): void {
     const g = this.game;
+    if (g.input?.lockDenied && !this.toldFreeLook) {
+      // The page could not capture the pointer, so say how looking around works here.
+      this.toldFreeLook = true;
+      this.note.textContent = 'Move the pointer to look. Rest it near a side edge to keep turning.';
+      this.note.classList.add('show');
+      window.setTimeout(() => this.note.classList.remove('show'), 9000);
+    }
     const text = g.phase === 'match' ? (g.controller?.prompt ?? '') : '';
     if (text !== this.shownPrompt) {
       this.shownPrompt = text;

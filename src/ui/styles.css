@@ -431,3 +431,27 @@ body {
     grid-template-columns: repeat(2, auto);
   }
 }
+
+.note {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  max-width: min(520px, 86vw);
+  padding: 9px 16px;
+  border: 1px solid var(--glass-line);
+  border-radius: 10px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  font-size: 14px;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.note.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

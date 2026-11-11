@@ -6,7 +6,7 @@ import { Assets, type ModelAsset } from './core/assets';
 import { Engine } from './core/engine';
 import { Emitter } from './core/events';
 import { Input } from './core/input';
-import { Settings } from './core/settings';
+import { QUALITY, type QualityName, Settings } from './core/settings';
 import type { GameSystem } from './core/system';
 import { ThirdPersonCamera } from './gameplay/camera';
 import { Interactions } from './gameplay/interactions';
@@ -100,6 +100,18 @@ export class Game {
     this.camera = new ThirdPersonCamera(this.engine.camera, this.physics);
     this.camera.baseFov = this.settings.data.fov;
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
+    this.settings.onChange((_data, changed) => {
+      if (changed !== 'quality') return;
+      this.engine.applyQuality();
+      this.world.sky.applyQuality(this.settings.quality);
+    });
+    // Still slow at the lowest resolution: take the next lighter preset.
+    this.engine.onStruggle = () => {
+      const order: QualityName[] = ['ultra', 'high', 'medium', 'low'];
+      const next = order[order.indexOf(this.settings.data.quality) + 1];
+      if (!next || !(next in QUALITY)) return;
+      this.settings.set('quality', next);
+    };
     progress(0.9, 'Warming up');
     // Ray and shape queries see the colliders only after a step.
     this.physics.step();
