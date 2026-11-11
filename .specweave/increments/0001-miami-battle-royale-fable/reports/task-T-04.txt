@@ -1,0 +1,13 @@
+$ npx playwright test tests/e2e/locomotion.spec.ts
+# exit 0 — 2026-11-11T20:42:43.916Z
+
+
+Running 5 tests using 1 worker
+
+  ✓  1 tests/e2e/locomotion.spec.ts:42:3 › locomotion › walks, jogs, sprints and crouch-walks with planted feet and matched strides (25.6s)
+  ✓  2 tests/e2e/locomotion.spec.ts:85:3 › locomotion › legs follow the movement while the torso and head stay on the aim (9.2s)
+  ✓  3 tests/e2e/locomotion.spec.ts:138:3 › locomotion › leans into turns and into acceleration (5.8s)
+  ✓  4 tests/e2e/locomotion.spec.ts:174:3 › locomotion › jumps, lands with a dip, and keeps its feet on kerbs and a bridge ramp (10.0s)
+  ✓  5 tests/e2e/locomotion.spec.ts:240:3 › locomotion › wades into the sea and swims (16.2s)
+
+  5 passed (1.1m)
