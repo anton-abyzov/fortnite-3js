@@ -23,7 +23,9 @@
     "no-new-array": "off",
     "prefer-add-event-listener": "off",
     "no-array-for-each": "off",
-    "no-thenable": "off"
+    "no-thenable": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off"
   },
   "ignorePatterns": [
     "dist",

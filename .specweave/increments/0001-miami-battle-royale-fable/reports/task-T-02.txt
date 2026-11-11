@@ -1,0 +1,4 @@
+$ node tools/check-credits.mjs
+# exit 0 — 2026-11-11T18:36:20.073Z
+
+credits ok: 7 files, 7 entries, 5.7 MB

@@ -7,7 +7,8 @@ const boot = document.getElementById('boot')!;
 const bootFill = document.getElementById('boot-fill')!;
 const bootText = document.getElementById('boot-text')!;
 
-const game = new Game(canvas);
+const params = new URLSearchParams(location.search);
+const game = new Game(canvas, { seed: Number(params.get('seed') ?? 1977) || 1977 });
 const debug = installDebug(game);
 
 window.addEventListener('error', (e) => game.errors.push(String(e.message)));

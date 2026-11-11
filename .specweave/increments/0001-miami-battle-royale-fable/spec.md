@@ -63,9 +63,10 @@ Research summary (November 11, 2026) and the choices it led to. Sources are list
 
 - Physically based materials, ACES tone mapping, sRGB output.
 - Procedural sky (`Sky` shader) with a moving sun. A match runs from late afternoon through sunset into neon dusk. The environment map is re-baked from the sky with PMREM every few seconds.
-- Cascaded shadow maps (three cascades) for the sun.
-- Post chain: bloom for neon and sun glints, SMAA, vignette and grade. N8AO ambient occlusion on High and Ultra.
-- Water: one shader for ocean and canals. Four Gerstner waves displace a camera-following grid; a baked shore-distance field drives turquoise shallows, foam lines and wave damping inside canals. The same wave function runs on the CPU for buoyancy and swimming.
+- One sun shadow map whose frustum follows the player and widens with camera height (70 m on foot, 720 m in the drop), snapped to whole texels. This replaced the planned three-cascade CSM: it needs one shadow pass, not three, over a city of about a million triangles, and the player never sees near and far shadows at once in a street canyon. See D-13.
+- Night lighting: lit windows and neon come from the facade shader and vertex-coloured emissive geometry; street lamps paint additive light pools and a small pool of real point lights follows the player from lamp to lamp.
+- Post chain: MSAA on the HDR target (FXAA on Low), bloom for neon and sun glints, vignette and grade, ACES output.
+- Water: one shader for ocean and canals. Five Gerstner waves displace a camera-following grid; a baked shore-distance field drives turquoise shallows, foam lines and wave damping inside canals. The same wave function runs on the CPU for buoyancy and swimming.
 - Instancing for palms, lamps, props and windows; merged static geometry per city block; distance culling and animation LOD.
 
 **World** (all generated in code from a seeded layout)
@@ -133,6 +134,7 @@ Research summary (November 11, 2026) and the choices it led to. Sources are list
 - D-08 Zone theme → hurricane eye with a rain wall (teal and white), named the Eye and the Squall.
 - D-09 Loot containers → beach coolers and duffel bags; tiers named Stock, Tuned, Custom, Signature.
 - D-10 Audio → synthesised in WebAudio, no sampled sound files.
+- D-13 Shadows → one adaptive shadow map instead of cascades (one pass over the city instead of three). Ambient occlusion is left out: flat-shaded pastel blocks gain little from it and it costs a full-screen pass.
 - D-11 Hosting → static `dist/`; no public deployment in this increment.
 - D-12 Committed binary assets live under `public/assets/` (about 30 MB cap); raw downloads stay in ignored `.temp/`.
 

@@ -1,4 +1,4 @@
-import { ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer } from 'three';
 import { FIXED_DT, MAX_STEPS_PER_FRAME } from './config';
 import type { Settings } from './settings';
 import { PostFX } from '../render/post';
@@ -51,8 +51,9 @@ export class Engine {
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1;
     this.renderer.shadowMap.enabled = settings.quality.shadows;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
-    this.renderer.info.autoReset = true;
+    this.renderer.shadowMap.type = PCFShadowMap;
+    // The post chain draws several passes per frame; counters are reset by hand once per frame.
+    this.renderer.info.autoReset = false;
     this.camera = new PerspectiveCamera(settings.data.fov, 16 / 9, 0.12, settings.quality.drawDistance);
     this.applyPixelRatio();
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -121,6 +122,7 @@ export class Engine {
     }
     if (this.accumulator > FIXED_DT * 2) this.accumulator = 0;
     h.frame(dt, this.accumulator / FIXED_DT);
+    this.renderer.info.reset();
     this.post.render(realDt);
     this.frameCount++;
     this.fpsAccum += realDt;

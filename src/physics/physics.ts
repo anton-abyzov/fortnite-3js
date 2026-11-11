@@ -89,6 +89,24 @@ export class Physics {
     return collider;
   }
 
+  /** Static box with a full rotation, for ramps and bridge decks. */
+  addStaticBoxQuat(
+    cx: number,
+    cy: number,
+    cz: number,
+    hx: number,
+    hy: number,
+    hz: number,
+    q: { x: number; y: number; z: number; w: number },
+    owner: ColliderOwner = WORLD_OWNER,
+    collisionGroups: number = CG.world,
+  ): RAPIER.Collider {
+    const desc = RAPIER.ColliderDesc.cuboid(hx, hy, hz).setTranslation(cx, cy, cz).setRotation(q).setCollisionGroups(collisionGroups);
+    const collider = this.world.createCollider(desc);
+    this.owners.set(collider.handle, owner);
+    return collider;
+  }
+
   addStaticCylinder(
     cx: number,
     cy: number,

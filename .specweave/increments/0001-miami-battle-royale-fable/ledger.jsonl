@@ -1,0 +1,5 @@
+{"t":"*","e":"session","by":"claude@minisforum","at":"2026-11-11T18:36:19.970Z","note":"session ed24f901-df47-481b-9f83-843e98a07421","model":"claude-fable-5-2[1m]"}
+{"t":"T-01","e":"claim","by":"claude@minisforum","at":"2026-11-11T18:36:19.973Z","model":"claude-fable-5-2[1m]"}
+{"t":"T-01","e":"done","by":"claude@minisforum","at":"2026-11-11T18:36:19.974Z","evidence":"npx playwright test tests/e2e/boot.spec.ts → exit 0\nlog: .specweave/increments/0001-miami-battle-royale-fable/reports/task-T-01.txt\nRunning 1 test using 1 worker\n\n  ✓  1 tests/e2e/boot.spec.ts:4:1 › the game boots, renders on the GPU and keeps drawing frames (1.8s)\n\n  1 passed (2.6s)\nHEAD a5ba07f","model":"claude-fable-5-2[1m]"}
+{"t":"T-02","e":"claim","by":"claude@minisforum","at":"2026-11-11T18:36:20.078Z","model":"claude-fable-5-2[1m]"}
+{"t":"T-02","e":"done","by":"claude@minisforum","at":"2026-11-11T18:36:20.080Z","evidence":"node tools/check-credits.mjs → exit 0\nlog: .specweave/increments/0001-miami-battle-royale-fable/reports/task-T-02.txt\ncredits ok: 7 files, 7 entries, 5.7 MB\nHEAD a5ba07f","model":"claude-fable-5-2[1m]"}

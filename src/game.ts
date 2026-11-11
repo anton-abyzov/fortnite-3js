@@ -1,15 +1,20 @@
-import { BoxGeometry, Color, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial, PlaneGeometry } from 'three';
+import { Vector3 } from 'three';
 import { Assets } from './core/assets';
 import { Engine } from './core/engine';
 import { Emitter } from './core/events';
 import { Input } from './core/input';
 import { Settings } from './core/settings';
 import { Physics } from './physics/physics';
+import { World } from './world/world';
 
 export type Phase = 'boot' | 'menu' | 'loading' | 'match' | 'ended';
 
 export interface GameEvents extends Record<string, unknown> {
   phase: Phase;
+}
+
+export interface GameOptions {
+  seed: number;
 }
 
 /** Owns every system and runs the loop. */
@@ -20,42 +25,34 @@ export class Game {
   engine!: Engine;
   input!: Input;
   physics!: Physics;
+  world!: World;
   phase: Phase = 'boot';
   errors: string[] = [];
+  /** Camera target used while no player is in control (menu flyover, debug views). */
+  readonly viewTarget = new Vector3(0, 10, 0);
+  private orbit = 0;
+  /** When set, the debug API has taken over the camera. */
+  cameraOverride = false;
 
-  constructor(readonly canvas: HTMLCanvasElement) {}
+  constructor(
+    readonly canvas: HTMLCanvasElement,
+    readonly options: GameOptions,
+  ) {}
 
   async init(progress: (fraction: number, label: string) => void): Promise<void> {
     progress(0.05, 'Starting physics');
     this.physics = await Physics.create();
-    progress(0.15, 'Starting renderer');
+    progress(0.12, 'Starting renderer');
     this.engine = new Engine(this.canvas, this.settings);
     this.input = new Input(this.canvas);
-    this.buildPlaceholder();
+    this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
+    progress(0.9, 'Warming up');
     this.engine.start({
       fixed: (dt) => this.fixedUpdate(dt),
       frame: (dt, alpha) => this.frameUpdate(dt, alpha),
     });
     progress(1, 'Ready');
     this.setPhase('menu');
-  }
-
-  private buildPlaceholder(): void {
-    const { scene, camera } = this.engine;
-    scene.background = new Color(0x6ec6ff);
-    scene.add(new HemisphereLight(0xbfe3ff, 0x8a7a5c, 1.2));
-    const sun = new DirectionalLight(0xfff1d6, 3);
-    sun.position.set(30, 50, 20);
-    scene.add(sun);
-    const ground = new Mesh(new PlaneGeometry(200, 200), new MeshStandardMaterial({ color: 0xe8d7a8 }));
-    ground.rotation.x = -Math.PI / 2;
-    scene.add(ground);
-    const box = new Mesh(new BoxGeometry(2, 2, 2), new MeshStandardMaterial({ color: 0xff7a59 }));
-    box.position.set(0, 1, 0);
-    box.name = 'placeholder-box';
-    scene.add(box);
-    camera.position.set(6, 4, 8);
-    camera.lookAt(0, 1, 0);
   }
 
   setPhase(phase: Phase): void {
@@ -69,8 +66,17 @@ export class Game {
   }
 
   private frameUpdate(dt: number, _alpha: number): void {
-    const box = this.engine.scene.getObjectByName('placeholder-box');
-    if (box) box.rotation.y += dt;
+    const { camera } = this.engine;
+    if (!this.cameraOverride) {
+      // Slow orbit over the city behind the menu.
+      this.orbit += dt * 0.035;
+      const r = 430;
+      camera.position.set(Math.sin(this.orbit) * r + 40, 150, Math.cos(this.orbit) * r);
+      this.viewTarget.set(40, 10, 0);
+      camera.lookAt(this.viewTarget);
+    }
+    const ground = this.world.field.heightAt(camera.position.x, camera.position.z);
+    this.world.update(this.engine.time, camera, this.viewTarget, Math.max(0, camera.position.y - ground));
     this.input.endFrame();
   }
 }

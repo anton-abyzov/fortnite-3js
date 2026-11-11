@@ -16,6 +16,8 @@ export interface QualityPreset {
   animLodNear: number;
   particles: number;
   propDensity: number;
+  /** Real point lights that follow the player between street lamps at night. */
+  streetLights: number;
   anisotropy: number;
 }
 
@@ -33,6 +35,7 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
     animLodNear: 20,
     particles: 0.4,
     propDensity: 0.5,
+    streetLights: 0,
     anisotropy: 2,
   },
   medium: {
@@ -48,6 +51,7 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
     animLodNear: 30,
     particles: 0.7,
     propDensity: 0.8,
+    streetLights: 3,
     anisotropy: 4,
   },
   high: {
@@ -63,6 +67,7 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
     animLodNear: 40,
     particles: 1,
     propDensity: 1,
+    streetLights: 5,
     anisotropy: 8,
   },
   ultra: {
@@ -78,6 +83,7 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
     animLodNear: 60,
     particles: 1.3,
     propDensity: 1,
+    streetLights: 8,
     anisotropy: 16,
   },
 };
