@@ -4,7 +4,8 @@ export const GAME_SUBTITLE = 'Marazul Bay';
 export const GAME_TAGLINE = 'Drop in. Stay inside the eye. Be the last one standing.';
 
 export const FIXED_DT = 1 / 60;
-export const MAX_STEPS_PER_FRAME = 4;
+/** Enough to keep game time equal to real time down to 10 frames a second, where the frame time is clamped. */
+export const MAX_STEPS_PER_FRAME = 6;
 
 /** World scale in metres. X is east, Z is south, Y is up. Sea level is y = 0. */
 export const WORLD = {
@@ -54,7 +55,9 @@ export const CG = {
   glass: groups(GROUP.glass, 0xffff),
   door: groups(GROUP.door, 0xffff),
   character: groups(GROUP.character, SOLID),
-  vehicle: groups(GROUP.vehicle, SOLID | GROUP.character | GROUP.loot | GROUP.ragdoll),
+  // Vehicles do not collide with character capsules: a kinematic capsule would stop a car dead.
+  // Characters still see vehicles as obstacles through `querySolid`, and run-overs are handled in gameplay.
+  vehicle: groups(GROUP.vehicle, SOLID | GROUP.loot | GROUP.ragdoll),
   prop: groups(GROUP.prop, SOLID | GROUP.character),
   loot: groups(GROUP.loot, GROUP.world | GROUP.vehicle),
   sensor: groups(GROUP.sensor, GROUP.character | GROUP.vehicle),

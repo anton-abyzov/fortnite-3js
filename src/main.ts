@@ -23,6 +23,13 @@ game
   .init(progress)
   .then(() => {
     boot.classList.add('hidden');
+    // Development shortcut: ?at=x,z,yaw starts on foot at a map position.
+    const at = params.get('at');
+    if (at) {
+      const [x, z, yaw] = at.split(',').map(Number);
+      game.startAt(x ?? 0, z ?? 0, yaw ?? 0);
+      game.input.freeLook = params.has('freelook');
+    }
     debug.ready = true;
   })
   .catch((err: unknown) => {

@@ -95,8 +95,10 @@ export class Engine {
     const tick = (now: number): void => {
       if (!this.running) return;
       this.raf = requestAnimationFrame(tick);
-      const realDt = Math.min(0.1, (now - this.last) / 1000);
-      this.frameMs = now - this.last;
+      // The first callback can carry a timestamp from before `start` ran (the page was busy loading),
+      // and a negative step would freeze the simulation until the debt was paid.
+      const realDt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
+      this.frameMs = Math.max(0, now - this.last);
       this.last = now;
       this.step(realDt * this.timeScale, realDt);
     };

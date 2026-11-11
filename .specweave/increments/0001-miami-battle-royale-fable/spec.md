@@ -78,13 +78,23 @@ Research summary (November 11, 2026) and the choices it led to. Sources are list
 
 **Characters**
 
-- Rig and clips: Quaternius Universal Animation Library 1 and 2 (CC0). UAL1 gives idle, walk, jog, sprint, crouch, jump, roll, swim, drive, sit, pistol aim up/neutral/down, shoot, reload, hit and death. UAL2 adds slide, consume, chest open, throw and knockback, retargeted by bone name.
-- `animator.ts`: phase-synced speed blend with stride matching; orientation warping (hips follow movement direction, spine counter-twists to the aim, reversed gait for backpedal); masked upper-body weapon layer with pitch aim offset; additive recoil and hit reactions.
-- `ik.ts`: analytic two-bone IK. Foot IK from ground raycasts with pelvis drop and ankle alignment; left-hand IK to the weapon foregrip and to steering wheels and handlebars; head and neck look-at.
-- `poses.ts`: procedural skydive arch, canopy hang, jet-ski straddle, built from bone-direction targets and springs.
-- Inertial lean from acceleration and turn rate on critically damped springs. Landing compression from impact speed.
+- Rig and clips: Quaternius Universal Animation Library 1 and 2 (CC0), one 53-bone mannequin and 50 clips, all in place (no root motion). The model faces +Z, so its root is turned half a turn from the game's yaw.
+- `clips.ts`: every clip is sampled once at 30 fps into flat arrays shared by all characters (`ClipBank`), and poses are blended by hand with per-bone masks. three's `AnimationMixer` is used only for that bake. See D-14.
+- `animator.ts`, in order each frame:
+  - Base pose. Walking and running are separate gaits that cross over between 2.1 and 3.3 m/s; jog and sprint blend by speed; all share one stride phase. A clip's natural speed is measured from how fast its toes travel while they are on the floor. Speed changes are split between cadence and stride length (square root each), cadence is capped at 1.45 times the authored rate, and the rest is taken up by stretching the stride in the foot targets.
+  - Snapshot crossfades between states (ground, air, swim, slide, seat, dead), an upper-body mask for weapon stances and one-shot actions.
+  - Orientation warping: the legs turn up to 80 degrees toward the direction of travel and the spine turns back by the same amount, so the chest stays on the aim; beyond about 106 degrees the legs run backward with the phase reversed.
+  - Lean from smoothed acceleration (forward when speeding up, into the turn when the path curves), breathing that deepens with exertion, recoil and flinch springs.
+  - Legs: a foot is in contact while it travels backward under the body and is low. A planted foot is pinned in the world, at the ankle while flat and at the toe once the heel lifts, and released into the swing with a blend. Two-bone IK puts the ankle on the pin and on the ground found by a ray; the pelvis drops for the lower foot, sinks up to 12 cm more when a planted leg would run out of length, and beyond that the pin is pulled in. Standing still, feet stay put while the upper body turns and step round one at a time once they are 55 degrees or 15 cm off.
+  - Landing: a critically damped spring drops the hips by about 13 cm from a jump and up to 29 cm from a long fall.
+  - Head and neck look-at within neck limits.
+- `ik.ts`: analytic two-bone IK, world-space bone rotation and translation helpers, aim-a-bone. Left-hand IK to weapon foregrips and steering wheels arrives with T-06 and T-07.
+- `poses.ts` (T-05): procedural skydive arch and canopy hang through the animator's `poseFn` hook.
+- `motor.ts`: capsule on Rapier's `KinematicCharacterController` with acceleration that favours stopping and reversing, coyote time, jump buffering, crouch with headroom check, slide, wading and swimming. A capsule pressed onto a triangle mesh sometimes catches an inner edge of flat ground and stops dead for a step; the motor retries such a step without the downward push.
+- Outfits: clothing is painted per fragment from the bind-pose position in a patched `MeshStandardMaterial` (sleeve and hem lengths, shirt patterns, gloves, socks, shoes), with hair, hats, glasses and the parachute pack as small meshes fitted to the measured head and chest. Every combatant gets a different combination.
 - Bots share the system with LOD: full IK near the camera, reduced update rate and no IK far away.
-- Outfits: per-vertex colour from dominant bone weights (skin, top, shorts, shoes) with palette variants and accessories, so every combatant reads differently.
+- Third-person camera on a boom over the shoulder; the boom shortens at once when a wall is in the way and grows back slowly. The crosshair ray starts beyond the character.
+- Pointer lock for mouse look, with a free-look mode (plain mouse movement) for embedded pages and headless tests, where a locked pointer cannot be driven.
 
 **Physics and vehicles**
 
@@ -109,7 +119,7 @@ Research summary (November 11, 2026) and the choices it led to. Sources are list
 **Assets**
 
 - Kenney Car Kit, Watercraft Kit, Blaster Kit, Mini Shop, Food Kit (CC0); Quaternius UAL 1 and 2 (CC0). Processed by `tools/build-assets.mjs` into `public/assets/` and committed.
-- AI images through the Higgsfield CLI (`@higgsfield/cli`; no Higgsfield MCP is registered on this machine) with Kie.ai as the second path.
+- AI images through Higgsfield's HTTP API (`tools/gen-art.mjs`, model Marketing Studio Image 2.5 Flare). No Higgsfield MCP is registered on this machine and the `@higgsfield/cli` package only signs in through a browser, so neither could be used from an agent; Kie.ai was the second path and was not needed.
 
 **Risks**
 
@@ -135,6 +145,9 @@ Research summary (November 11, 2026) and the choices it led to. Sources are list
 - D-09 Loot containers → beach coolers and duffel bags; tiers named Stock, Tuned, Custom, Signature.
 - D-10 Audio → synthesised in WebAudio, no sampled sound files.
 - D-13 Shadows → one adaptive shadow map instead of cascades (one pass over the city instead of three). Ambient occlusion is left out: flat-shaded pastel blocks gain little from it and it costs a full-screen pass.
+- D-14 Animation runtime → clips baked into a shared `ClipBank` and blended by hand, not one `AnimationMixer` per character. 24 characters share one copy of the data, pose blending with bone masks costs about 0.08 ms per character, and the procedural layers (warping, foot locking, IK) need direct access to the pose anyway.
+- D-15 Vehicles do not collide with character capsules. A kinematic capsule is an immovable wall to a dynamic car, so walking into a parked car would shove it and a car hitting a pedestrian would stop dead. Run-overs and door blocking are handled in gameplay code from overlap tests.
+- D-16 The fixed step runs up to six times per frame, which keeps game time equal to real time down to 10 frames a second; below that the game slows down instead of spiralling.
 - D-11 Hosting → static `dist/`; no public deployment in this increment.
 - D-12 Committed binary assets live under `public/assets/` (about 30 MB cap); raw downloads stay in ignored `.temp/`.
 

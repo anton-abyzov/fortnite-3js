@@ -1,4 +1,14 @@
+import { Vector3 } from 'three';
+import type { Character } from '../character/character';
 import type { Game } from '../game';
+
+const _dir = new Vector3();
+
+/** Yaw a body part faces, in the game's convention (0 is north, positive turns left). */
+function partYaw(c: Character, part: 'head' | 'chest' | 'hips'): number {
+  const d = c.anim.partFacing(part, _dir);
+  return Math.atan2(-d.x, -d.z);
+}
 
 /**
  * Test and tooling surface on `window.__eyewall`.
@@ -17,6 +27,16 @@ export interface DebugApi {
   probe(x: number, z: number): WorldProbe;
   /** Counts that describe the generated city. */
   census(): Record<string, number>;
+  /** Put the player on the ground at a point, skipping the menu and the drop. */
+  startAt(x: number, z: number, yaw?: number): void;
+  /** Start the animation totals (foot slide, travel, maxima) again. */
+  resetMetrics(): void;
+  /** The player's movement and animation state. */
+  player(): Record<string, any> | null;
+  /** Let mouse movement turn the view without pointer lock (headless browsers cannot lock the pointer). */
+  setFreeLook(on: boolean): void;
+  /** Hold the camera at an offset from the player (for filming animation). Pass no arguments to release. */
+  chase(dx?: number, dy?: number, dz?: number): void;
 }
 
 export interface WorldProbe {
@@ -75,6 +95,51 @@ export function installDebug(game: Game): DebugApi {
         ground: game.physics.groundHeight(x, 400, z, 500, -1000),
         wave: w.water.height(x, z),
         shore: w.field.shoreDistance(x, z),
+      };
+    },
+    startAt: (x, z, yaw = 0) => {
+      game.startAt(x, z, yaw);
+    },
+    resetMetrics: () => {
+      game.player?.anim.resetMetrics();
+    },
+    chase: (dx, dy, dz) => {
+      game.debugChase = dx === undefined ? null : new Vector3(dx, dy ?? 1, dz ?? 0);
+    },
+    setFreeLook: (on) => {
+      game.input.freeLook = on;
+    },
+    player: () => {
+      const c = game.player;
+      if (!c) return null;
+      const m = c.motor;
+      return {
+        x: m.position.x,
+        y: m.position.y,
+        z: m.position.z,
+        vx: m.velocity.x,
+        vy: m.velocity.y,
+        vz: m.velocity.z,
+        speed: m.speed,
+        mode: m.mode,
+        grounded: m.grounded,
+        crouched: m.crouched,
+        swimming: m.swimming,
+        waterDepth: m.waterDepth,
+        surface: m.surface,
+        facing: c.facing,
+        aimYaw: c.aimYaw,
+        aimPitch: c.aimPitch,
+        health: c.health,
+        alive: c.alive,
+        state: c.state,
+        anim: { mode: c.anim.mode, phase: c.anim.phase, ...c.anim.metrics },
+        headYaw: partYaw(c, 'head'),
+        headPitch: Math.asin(Math.max(-1, Math.min(1, c.anim.partFacing('head', _dir).y))),
+        chestYaw: partYaw(c, 'chest'),
+        hipsYaw: partYaw(c, 'hips'),
+        camYaw: game.camera.yaw,
+        camPitch: game.camera.pitch,
       };
     },
     census: () => {

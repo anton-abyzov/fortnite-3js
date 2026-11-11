@@ -14,8 +14,9 @@ export class Input {
   private lookY = 0;
   private wheel = 0;
   locked = false;
-  /** When true, mouse movement turns the camera without pointer lock (used by automated tests and as a fallback). */
-  freeLook = false;
+  private free = false;
+  private lastX = Number.NaN;
+  private lastY = Number.NaN;
   /** Gameplay input is ignored while a menu or text field owns the keyboard. */
   enabled = true;
   private element: HTMLElement;
@@ -63,11 +64,36 @@ export class Input {
   };
 
   private onMouseMove = (e: MouseEvent): void => {
-    if (this.locked || this.freeLook) {
+    if (this.locked) {
       this.lookX += e.movementX;
       this.lookY += e.movementY;
+    } else if (this.free && document.pointerLockElement !== this.element) {
+      // No pointer lock: the pointer moves over the page, so turn by how far it travelled.
+      if (!Number.isNaN(this.lastX)) {
+        this.lookX += e.clientX - this.lastX;
+        this.lookY += e.clientY - this.lastY;
+      }
+      this.lastX = e.clientX;
+      this.lastY = e.clientY;
     }
   };
+
+  /**
+   * Turn the view with plain mouse movement instead of pointer lock. For embedded pages and for automated
+   * browsers, where a locked pointer cannot be driven.
+   */
+  get freeLook(): boolean {
+    return this.free;
+  }
+
+  set freeLook(on: boolean) {
+    this.free = on;
+    this.lastX = Number.NaN;
+    if (on && document.pointerLockElement === this.element) {
+      this.locked = false;
+      document.exitPointerLock();
+    }
+  }
 
   private onWheel = (e: WheelEvent): void => {
     this.wheel += Math.sign(e.deltaY);
@@ -75,6 +101,12 @@ export class Input {
 
   private onLockChange = (): void => {
     this.locked = document.pointerLockElement === this.element;
+    this.lastX = Number.NaN;
+    // A lock that was asked for before free look was switched on can still arrive: give it straight back.
+    if (this.locked && this.free) {
+      this.locked = false;
+      document.exitPointerLock();
+    }
   };
 
   press(code: string): void {
@@ -97,6 +129,7 @@ export class Input {
   }
 
   private requestLock(): void {
+    if (this.free) return;
     try {
       const result = this.element.requestPointerLock() as unknown;
       if (result instanceof Promise) result.catch(() => undefined);
