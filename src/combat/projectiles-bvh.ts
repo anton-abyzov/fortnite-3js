@@ -38,7 +38,15 @@ function intersectRayVerticalCylinder(
   const oz = origin.z - basePos.z;
   const a = dir.x * dir.x + dir.z * dir.z;
 
-  if (a < 1e-6) return null;
+  if (a < 1e-6) {
+    if (ox * ox + oz * oz > radius * radius || Math.abs(dir.y) < 1e-6) return null;
+    const tTop = (basePos.y + height - origin.y) / dir.y;
+    const tBot = (basePos.y - origin.y) / dir.y;
+    const t = Math.min(tTop, tBot);
+    if (t < 0 || t > maxDist) return null;
+    const point = origin.clone().addScaledVector(dir, t);
+    return { distance: t, point, headshot: dir.y < 0 };
+  }
   const b = 2 * (ox * dir.x + oz * dir.z);
   const c = ox * ox + oz * oz - radius * radius;
   const disc = b * b - 4 * a * c;

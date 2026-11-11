@@ -1,12 +1,15 @@
 {
   "id": "0003-sunbreak-biscayne",
   "uuid": "3a83fcdb-581e-49ac-a16b-2d8a84a884e2",
-  "status": "active",
+  "status": "completed",
   "type": "feature",
   "priority": "P1",
   "created": "2026-11-11T18:30:34.489Z",
-  "updated": "2026-11-11T20:29:09.870Z",
-  "lastActivity": "2026-11-11T20:29:09.870Z",
+  "updated": "2026-11-11T20:35:58.864Z",
+  "lastActivity": "2026-11-11T20:35:58.864Z",
   "title": "Sunbreak Biscayne: Original Miami Coastal Drop-Zone Game",
-  "project": "fortnite-3js"
+  "project": "fortnite-3js",
+  "externalLinks": {},
+  "readyForReviewAt": "2026-11-11T20:35:58.863Z",
+  "approvedAt": "2026-11-11T20:35:58.864Z"
 }

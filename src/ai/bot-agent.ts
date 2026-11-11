@@ -265,8 +265,9 @@ export class BotAgent implements DamageableTarget {
           stepLen + 0.55,
         );
         if (wallHit && wallHit.normal.y < 0.55) {
+          const prevVx = this.velocity.x;
           this.velocity.x = -this.velocity.z * this.strafeDir;
-          this.velocity.z = this.velocity.x * this.strafeDir;
+          this.velocity.z = prevVx * this.strafeDir;
           this.retargetTimer = 0;
         }
       }
