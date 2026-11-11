@@ -50,6 +50,45 @@
       "changes": "Thirty models packed into one file."
     },
     {
+      "files": ["img/title.webp"],
+      "title": "EYEWALL title key art",
+      "author": "EYEWALL project",
+      "license": "Original (AI-generated, project-owned)",
+      "source": "tools/gen-art.mjs (Higgsfield API, Marketing Studio Image 2.5 Flare)",
+      "changes": "Resized to 1920x1080 and encoded as WebP without metadata."
+    },
+    {
+      "files": ["img/billboards/*"],
+      "title": "Marazul Bay billboards",
+      "author": "EYEWALL project",
+      "license": "Original (AI-generated, project-owned)",
+      "source": "tools/gen-art.mjs (Higgsfield API, Marketing Studio Image 2.5 Flare)",
+      "changes": "Eight pictures cropped from 16:9 to 2:1, resized to 1024x512 and encoded as WebP without metadata. Every brand name is fictional."
+    },
+    {
+      "files": ["img/murals/*"],
+      "title": "Marazul Bay street murals",
+      "author": "EYEWALL project",
+      "license": "Original (AI-generated, project-owned)",
+      "source": "tools/gen-art.mjs (Higgsfield API, Marketing Studio Image 2.5 Flare)",
+      "changes": "Six pictures resized to 1152x768 and encoded as WebP without metadata."
+    },
+    {
+      "files": ["img/posters/*"],
+      "title": "Marazul Bay shop posters",
+      "author": "EYEWALL project",
+      "license": "Original (AI-generated, project-owned)",
+      "source": "tools/gen-art.mjs (Higgsfield API, Marketing Studio Image 2.5 Flare)",
+      "changes": "Six pictures resized to 512x768 and encoded as WebP without metadata. Every brand name is fictional."
+    },
+    {
+      "files": ["img/art.json"],
+      "title": "Artwork manifest",
+      "author": "EYEWALL project",
+      "license": "MIT",
+      "source": "this repository"
+    },
+    {
       "files": ["credits.json"],
       "title": "Credits manifest",
       "author": "EYEWALL project",

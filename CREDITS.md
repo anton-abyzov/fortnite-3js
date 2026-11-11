@@ -17,11 +17,29 @@ The machine-readable list is `public/assets/credits.json`. `npm run credits` fai
 
 CC0 1.0 is a public-domain dedication: https://creativecommons.org/publicdomain/zero/1.0/. Credit is not required. It is given here with thanks.
 
+## Original artwork (AI-generated)
+
+The pictures in `public/assets/img` were generated for this project from the prompts in `tools/gen-art.mjs`, and the project owns them. Licence: Original (AI-generated, project-owned).
+
+All 21 pictures came from the same provider and model: the Higgsfield API (`api.higgsfield.ai`), model Marketing Studio Image 2.5 Flare, resolution `2k`, quality `max`.
+
+| Asset | Pictures | Provider | Model | Shipped as |
+|---|---|---|---|---|
+| EYEWALL title key art | `title` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/title.webp` |
+| Marazul Bay billboards | `cascabel-cola`, `marazul-air`, `sol-987`, `pelican-surf`, `hotel-flamingo`, `tidewater-cold-brew`, `garza-marina`, `storm-watch` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/billboards/*.webp` |
+| Marazul Bay street murals | `flamingos`, `big-wave`, `pelican`, `fruit`, `eye`, `manatee` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/murals/*.webp` |
+| Marazul Bay shop posters | `mango-smoothie`, `sunscreen`, `arcade-night`, `fresh-ceviche`, `board-rental`, `ammo-sale` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/posters/*.webp` |
+
+Every brand name in these pictures is fictional and was invented for the game: Cascabel Cola, Marazul Air, Sol 98.7 FM, Pelican Surf Co., Hotel Flamingo Heights, Tidewater Cold Brew, Garza Marina, Eyewall Storm Watch (Channel 5) and Sol-Block. None refers to a real company, product or broadcaster.
+
+Each picture was downloaded as a PNG, cropped and resized with sharp, and encoded as WebP without metadata.
+
 ## Project files
 
 | Asset | Author | Licence |
 |---|---|---|
 | Credits manifest | EYEWALL project | MIT |
+| Artwork manifest | EYEWALL project | MIT |
 
 ## Software
 
@@ -36,5 +54,6 @@ CC0 1.0 is a public-domain dedication: https://creativecommons.org/publicdomain/
 ```
 tools/fetch-assets.sh   # downloads the raw packs into .temp/dl
 npm run assets          # writes public/assets/models
+node tools/gen-art.mjs  # regenerates public/assets/img; needs HF_API_KEY_ID and HF_API_KEY_SECRET in the environment
 npm run credits         # checks every shipped file is listed
 ```
