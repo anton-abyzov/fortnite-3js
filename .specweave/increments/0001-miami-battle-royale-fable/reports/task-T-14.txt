@@ -1,0 +1,4 @@
+$ node tools/check-docs.mjs
+# exit 0 — 2026-11-11T23:12:26.424Z
+
+check-docs: docs/multiplayer-evaluation.md ok (4071 words, 9 sections: recommendation, is it worth it, architecture, netcode options, frameworks and services, hosting cost, phased plan, risks, sources)
