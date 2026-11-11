@@ -34,12 +34,13 @@ Tasks in spec.md: `### T-01 Title`, then `- AC: AC-01 | Files: src/a.ts, tests/e
 
 | Action | Command |
 |---|---|
-| Build | TODO: not detected — fill in the build command |
-| Test | TODO: not detected — fill in the test command |
-| Lint | TODO: not detected — fill in the lint command |
+| Build | `npm run build` |
+| Test | `npm run test:unit` |
+| Lint | `npm run lint` |
 
 If a cell still says TODO, fill it in from `package.json`/`Makefile` and commit; `specweave verify` runs these rows.
 
 ## Project notes
 
-(architecture map, things agents get wrong here, recurring mistakes; keep it short)
+- Sunbreak: Biscayne is an original Miami-inspired coastal drop-zone survival game built with Three.js, Rapier3D WASM, `three-mesh-bvh`, and `three-gpu-pathtracer`.
+- Headless Playwright E2E tests run via `npm run test:e2e` against `vite preview` on port `4179` with `headless: true` and `PLAYWRIGHT_HTML_OPEN=never`.

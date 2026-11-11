@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+dist/
+playwright-report/
+test-results/
+artifacts/
 
 # Environment
 .env

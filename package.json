@@ -1,0 +1,31 @@
+{
+  "name": "sunbreak-biscayne",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sunbreak: Biscayne - Original Miami coastal drop-zone survival game with Rapier3D physics, biomechanical human IK, vehicles, watercraft, and browser GPU path tracing",
+  "scripts": {
+    "dev": "vite --port 5179",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4179",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "PWDEBUG=0 PLAYWRIGHT_HTML_OPEN=never playwright test",
+    "verify:all": "npm run lint && npm run test:unit && npm run build && npm run test:e2e"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
+    "postprocessing": "6.39.6",
+    "three": "0.187.0",
+    "three-gpu-pathtracer": "0.0.28",
+    "three-mesh-bvh": "0.9.18"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/three": "0.187.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  }
+}
