@@ -29,6 +29,10 @@ export interface DebugApi {
   census(): Record<string, number>;
   /** Put the player on the ground at a point, skipping the menu and the drop. */
   startAt(x: number, z: number, yaw?: number): void;
+  /** Press the interact key for the player: use what the prompt offers, or get out of a vehicle. */
+  interact(): boolean;
+  /** Entry points published by systems (vehicles, shops, bots...) for tests. */
+  ext: Record<string, any>;
   /** Start the animation totals (foot slide, travel, maxima) again. */
   resetMetrics(): void;
   /** The player's movement and animation state. */
@@ -100,6 +104,8 @@ export function installDebug(game: Game): DebugApi {
     startAt: (x, z, yaw = 0) => {
       game.startAt(x, z, yaw);
     },
+    interact: () => game.controller?.interact() ?? false,
+    ext: game.debugExt,
     resetMetrics: () => {
       game.player?.anim.resetMetrics();
     },
@@ -138,6 +144,11 @@ export function installDebug(game: Game): DebugApi {
         headPitch: Math.asin(Math.max(-1, Math.min(1, c.anim.partFacing('head', _dir).y))),
         chestYaw: partYaw(c, 'chest'),
         hipsYaw: partYaw(c, 'hips'),
+        cash: c.cash,
+        items: { ...c.inventory.counts },
+        armor: c.armor,
+        prompt: game.controller?.prompt ?? '',
+        vehicle: c.vehicle ? { kind: c.vehicle.kind, name: c.vehicle.name, seat: c.seat, driver: c.vehicle.driver === c, speed: c.vehicle.speed, x: c.vehicle.position.x, y: c.vehicle.position.y, z: c.vehicle.position.z, yaw: c.vehicle.yaw, health: c.vehicle.health } : null,
         camYaw: game.camera.yaw,
         camPitch: game.camera.pitch,
       };

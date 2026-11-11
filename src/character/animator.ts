@@ -68,6 +68,8 @@ interface Foot {
 }
 
 const UP = new Vector3(0, 1, 0);
+/** The model faces +Z and the game's forward is -Z. */
+const HALF_TURN = new Quaternion().setFromAxisAngle(UP, Math.PI);
 const _v = new Vector3();
 const _v2 = new Vector3();
 const _v3 = new Vector3();
@@ -129,6 +131,11 @@ export class Animator {
   onFootstep: ((side: number, speed: number) => void) | null = null;
   /** Extra downward offset of the whole body in metres (sinking into a seat, swimming depth). */
   bodyOffsetY = 0;
+  /**
+   * In 'seat' and 'pose' modes: the body's full orientation (forward is -Z), for a seat in a rolling boat
+   * or a skydiver lying on the air. When null the body stands upright facing `facing`.
+   */
+  rootQuat: Quaternion | null = null;
 
   // Outputs for other systems and tests.
   readonly metrics = { footError: 0, slide: 0, travel: 0, leanRoll: 0, leanPitch: 0, twist: 0, headError: 0, strideRate: 0, legWarp: 0, plantedL: false, plantedR: false, pelvis: 0, stretch: 0, lockErr: 0, strideScale: 1, footErrorMax: 0 };
@@ -429,7 +436,8 @@ export class Animator {
     this.updateLean(dt, speed, grounded);
     const land = this.landSpring.update(0, dt);
     rig.root.position.set(this.position.x, this.visualY + this.bodyOffsetY, this.position.z);
-    rig.root.rotation.set(this.leanPitch, this.facing + Math.PI + this.legWarp, this.leanRoll, 'YXZ');
+    if (this.rootQuat && (this.mode === 'seat' || this.mode === 'pose')) rig.root.quaternion.copy(this.rootQuat).multiply(HALF_TURN);
+    else rig.root.rotation.set(this.leanPitch, this.facing + Math.PI + this.legWarp, this.leanRoll, 'YXZ');
 
     if (this.mode === 'pose' && this.poseFn) {
       rig.root.updateMatrixWorld(true);

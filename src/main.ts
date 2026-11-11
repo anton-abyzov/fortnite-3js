@@ -1,6 +1,7 @@
 import './ui/styles.css';
 import { installDebug } from './core/debug';
 import { Game } from './game';
+import { Shell } from './ui/shell';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const boot = document.getElementById('boot')!;
@@ -23,6 +24,7 @@ game
   .init(progress)
   .then(() => {
     boot.classList.add('hidden');
+    new Shell(game, document.getElementById('ui')!);
     // Development shortcut: ?at=x,z,yaw starts on foot at a map position.
     const at = params.get('at');
     if (at) {

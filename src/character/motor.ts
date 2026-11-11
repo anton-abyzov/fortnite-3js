@@ -114,13 +114,19 @@ export class CharacterMotor {
     return this.mode === 'swim';
   }
 
-  /** Turn collision and movement off (seated in a vehicle, parachuting, dead) or back on. */
-  setEnabled(on: boolean): void {
+  /**
+   * Turn movement off (seated in a vehicle, parachuting, dead) or back on. With `keepCollider` the capsule
+   * stays in the world while it is carried about with `place`, so bullets still find the body.
+   */
+  setEnabled(on: boolean, keepCollider = false): void {
+    this.collider.setEnabled(on || keepCollider);
     if (this.enabled === on) return;
     this.enabled = on;
-    this.collider.setEnabled(on);
-    if (!on) this.mode = 'off';
-    else this.mode = 'air';
+    if (!on) {
+      this.mode = 'off';
+      this.grounded = false;
+      this.setCrouched(false);
+    } else this.mode = 'air';
   }
 
   get isEnabled(): boolean {

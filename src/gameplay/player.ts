@@ -2,6 +2,7 @@ import type { Character } from '../character/character';
 import type { Input } from '../core/input';
 import type { Settings } from '../core/settings';
 import type { CameraSubject, ThirdPersonCamera } from './camera';
+import type { Interactable, Interactions } from './interactions';
 import { damp } from '../core/math';
 
 const _look = { x: 0, y: 0 };
@@ -15,7 +16,9 @@ export class PlayerController {
   crouchToggle = false;
   /** Set by weapons and vehicles to stop the player from moving on foot. */
   locked = false;
-  readonly subject: CameraSubject;
+  /** What the interact key would use right now, if anything. */
+  target: Interactable | null = null;
+  private readonly foot: CameraSubject;
   private sprintKick = 0;
 
   constructor(
@@ -23,8 +26,41 @@ export class PlayerController {
     private input: Input,
     private camera: ThirdPersonCamera,
     private settings: Settings,
+    private interactions: Interactions,
   ) {
-    this.subject = { position: character.visual, height: 1.55, distance: 3.3, shoulder: 0.55, aim: 0, fovKick: 0 };
+    this.foot = { position: character.visual, height: 1.55, distance: 3.3, shoulder: 0.55, aim: 0, fovKick: 0 };
+  }
+
+  /** What the camera should frame: the character on foot, or the vehicle they sit in. */
+  get subject(): CameraSubject {
+    return this.character.vehicle ? this.character.vehicle.cameraSubject : this.foot;
+  }
+
+  /** The words for the interact prompt, or an empty string. */
+  get prompt(): string {
+    if (this.character.vehicle) return 'Get out';
+    if (this.character.state === 'seated') return 'Stand up';
+    return this.target ? this.interactions.labelOf(this.target, this.character) : '';
+  }
+
+  /** Use whatever is on offer (the interact key, or a test). Returns true when something was used. */
+  interact(): boolean {
+    const c = this.character;
+    if (!c.alive || this.locked) return false;
+    if (c.vehicle) {
+      c.vehicle.exit(c);
+      return true;
+    }
+    if (c.state === 'seated') {
+      c.rise();
+      return true;
+    }
+    if (c.state !== 'normal') return false;
+    const t = this.target ?? this.interactions.find(c, this.camera.forward);
+    if (!t) return false;
+    t.use(c);
+    this.target = null;
+    return true;
   }
 
   /** Per frame: mouse look. The view must turn at display rate, not at the physics rate. */
@@ -40,11 +76,11 @@ export class PlayerController {
     const m = c.motor;
     const sprinting = m.speed > 5.6 && m.grounded;
     this.sprintKick = damp(this.sprintKick, sprinting ? 7 : m.mode === 'slide' ? 10 : 0, 6, dt);
-    const sub = this.subject;
+    const sub = this.foot;
     sub.height = damp(sub.height, m.swimming ? 1.25 : m.crouched ? 1.12 : 1.56, 10, dt);
     sub.distance = 3.3;
     sub.shoulder = 0.55 * this.shoulderSide * (1 - 0.25 * this.aim);
-    sub.aim = this.aim;
+    sub.aim = c.vehicle ? 0 : this.aim;
     sub.fovKick = this.sprintKick;
 
     c.aimYaw = this.camera.yaw;
@@ -62,8 +98,37 @@ export class PlayerController {
       mi.moveZ = 0;
       mi.sprint = false;
       mi.jump = false;
+      this.target = null;
       return;
     }
+    const v = c.vehicle;
+    if (v) {
+      // Seated: the movement keys drive when this is the driver's seat.
+      this.target = null;
+      this.crouchToggle = false;
+      if (v.driver === c) {
+        const k = v.controls;
+        k.throttle = input.axis('KeyS', 'KeyW') + input.axis('ArrowDown', 'ArrowUp');
+        k.steer = input.axis('KeyA', 'KeyD') + input.axis('ArrowLeft', 'ArrowRight');
+        k.handbrake = input.held('Space');
+        k.brake = 0;
+        k.boost = input.held('ShiftLeft');
+      }
+      if (input.pressed('KeyE') || input.pressed('KeyF')) v.exit(c);
+      return;
+    }
+    if (c.state === 'seated') {
+      // On a stool or a bench: any movement key stands up.
+      this.target = null;
+      if (input.pressed('KeyE') || input.pressed('KeyF') || input.pressed('Space') || input.axis('KeyS', 'KeyW') !== 0 || input.axis('KeyA', 'KeyD') !== 0) c.rise();
+      return;
+    }
+    if (c.state !== 'normal') {
+      this.target = null;
+      return;
+    }
+    this.target = this.interactions.find(c, this.camera.forward);
+    if (this.target && (input.pressed('KeyE') || input.pressed('KeyF'))) this.interact();
     const fwd = input.axis('KeyS', 'KeyW') + input.axis('ArrowDown', 'ArrowUp');
     const right = input.axis('KeyA', 'KeyD') + input.axis('ArrowLeft', 'ArrowRight');
     const yaw = this.camera.yaw;

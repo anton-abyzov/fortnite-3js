@@ -109,3 +109,325 @@ body {
   opacity: 0.8;
   min-height: 1.4em;
 }
+
+/* Title screen */
+
+.title {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  background:
+    linear-gradient(90deg, rgba(6, 16, 26, 0.94) 0%, rgba(6, 16, 26, 0.8) 30%, rgba(6, 16, 26, 0.18) 62%, rgba(6, 16, 26, 0) 100%),
+    url('/assets/img/title.webp') center / cover no-repeat;
+  transition: opacity 0.45s ease;
+  z-index: 20;
+}
+
+#ui > .title {
+  pointer-events: auto;
+}
+
+#ui > .title.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  width: min(700px, 96vw);
+  padding: clamp(24px, 5vw, 72px);
+}
+
+.title-kicker {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+
+.title-name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(44px, 6.4vw, 96px);
+  letter-spacing: 0.08em;
+  line-height: 0.92;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #fff6e4 0%, #ffd166 46%, #ff7a59 78%, #ff3d8b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.title-line {
+  margin: 0;
+  max-width: 34em;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(244, 251, 250, 0.86);
+}
+
+.title-label {
+  margin-bottom: 8px;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border: 1px solid var(--glass-line);
+  border-radius: 10px;
+  background: rgba(11, 29, 42, 0.5);
+  color: var(--foam);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.chip:hover {
+  border-color: rgba(53, 224, 200, 0.6);
+}
+
+.chip.on {
+  border-color: var(--teal);
+  background: rgba(53, 224, 200, 0.16);
+}
+
+.chip-name {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.chip-note {
+  font-size: 12px;
+  color: rgba(244, 251, 250, 0.62);
+}
+
+.play {
+  align-self: flex-start;
+  min-width: 220px;
+  padding: 16px 34px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffd166 0%, #ff9d4d 100%);
+  color: #2a1406;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(255, 122, 89, 0.35);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.play:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(255, 122, 89, 0.5);
+}
+
+.play:focus-visible,
+.chip:focus-visible,
+.pause-back:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: 8px 22px;
+  margin: 4px 0 0;
+}
+
+.keys-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keys-what {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(244, 251, 250, 0.74);
+}
+
+.key {
+  display: inline-block;
+  min-width: 26px;
+  padding: 3px 7px;
+  border: 1px solid rgba(244, 251, 250, 0.3);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: rgba(11, 29, 42, 0.7);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--foam);
+}
+
+.title-note {
+  margin: 6px 0 0;
+  max-width: 36em;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(244, 251, 250, 0.5);
+}
+
+/* In play */
+
+.prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  font-size: 15px;
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.prompt.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.place {
+  position: fixed;
+  left: 50%;
+  top: 9%;
+  transform: translateX(-50%);
+  font-family: var(--display);
+  font-size: clamp(22px, 3vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+}
+
+.place.show {
+  animation: place 4.2s ease forwards;
+}
+
+@keyframes place {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.5em;
+  }
+  14%,
+  70% {
+    opacity: 1;
+    letter-spacing: 0.3em;
+  }
+  100% {
+    opacity: 0;
+    letter-spacing: 0.3em;
+  }
+}
+
+.pause {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 34px;
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+#ui > .pause.show {
+  display: flex;
+  pointer-events: auto;
+}
+
+.pause-title {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  text-transform: uppercase;
+}
+
+.pause-text {
+  font-size: 14px;
+  color: rgba(244, 251, 250, 0.78);
+}
+
+.pause-back {
+  margin-top: 6px;
+  padding: 7px 16px;
+  border: 1px solid var(--glass-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--foam);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pause-back:hover {
+  border-color: var(--teal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title,
+  .play,
+  .prompt {
+    transition: none;
+  }
+  .place.show {
+    animation-duration: 0.01s;
+  }
+}
+
+@media (max-width: 640px) {
+  .keys {
+    grid-template-columns: repeat(2, auto);
+  }
+}
