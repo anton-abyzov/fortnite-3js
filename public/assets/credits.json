@@ -1,0 +1,60 @@
+{
+  "note": "Every file under public/assets must match one entry here. tools/check-credits.mjs enforces it.",
+  "entries": [
+    {
+      "files": ["models/character.glb"],
+      "title": "Universal Animation Library 1 and 2 (Standard): mannequin rig and 50 motion clips",
+      "author": "Quaternius",
+      "license": "CC0 1.0",
+      "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "changes": "Clips from both libraries merged onto one rig, unused clips removed, keyframes resampled."
+    },
+    {
+      "files": ["models/vehicles.glb"],
+      "title": "Car Kit 3.1",
+      "author": "Kenney",
+      "license": "CC0 1.0",
+      "source": "https://kenney.nl/assets/car-kit",
+      "changes": "Sixteen models packed into one file."
+    },
+    {
+      "files": ["models/boats.glb"],
+      "title": "Watercraft Kit",
+      "author": "Kenney",
+      "license": "CC0 1.0",
+      "source": "https://kenney.nl/assets/watercraft-kit",
+      "changes": "Thirty-three models packed into one file."
+    },
+    {
+      "files": ["models/weapons.glb"],
+      "title": "Blaster Kit 2.1",
+      "author": "Kenney",
+      "license": "CC0 1.0",
+      "source": "https://kenney.nl/assets/blaster-kit",
+      "changes": "Twenty-eight models packed into one file."
+    },
+    {
+      "files": ["models/shop.glb"],
+      "title": "Mini Shop 2.1 (Mini Market)",
+      "author": "Kenney",
+      "license": "CC0 1.0",
+      "source": "https://kenney.nl/assets/mini-market",
+      "changes": "Twenty-two models packed into one file."
+    },
+    {
+      "files": ["models/food.glb"],
+      "title": "Food Kit",
+      "author": "Kenney",
+      "license": "CC0 1.0",
+      "source": "https://kenney.nl/assets/food-kit",
+      "changes": "Thirty models packed into one file."
+    },
+    {
+      "files": ["credits.json"],
+      "title": "Credits manifest",
+      "author": "EYEWALL project",
+      "license": "MIT",
+      "source": "this repository"
+    }
+  ]
+}

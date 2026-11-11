@@ -54,3 +54,10 @@ vskill.lock
 **/reports/*.mp4
 **/reports/*.png
 **/reports/*.jpg
+
+# Build and test output
+dist/
+test-results/
+playwright-report/
+evidence/tmp/
+evidence/

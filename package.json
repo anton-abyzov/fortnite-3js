@@ -1,0 +1,35 @@
+{
+  "name": "eyewall-marazul-bay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EYEWALL: Marazul Bay. An original battle royale browser game: parachute into a Miami-inspired coastal city, drive, sail and fight bots.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src tests tools",
+    "test": "playwright test",
+    "assets": "node tools/build-assets.mjs",
+    "credits": "node tools/check-credits.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "meshoptimizer": "^1.3.0",
+    "oxlint": "^1.93.0",
+    "sharp": "^0.35.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

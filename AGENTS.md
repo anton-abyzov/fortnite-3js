@@ -34,12 +34,19 @@ Tasks in spec.md: `### T-01 Title`, then `- AC: AC-01 | Files: src/a.ts, tests/e
 
 | Action | Command |
 |---|---|
-| Build | TODO: not detected — fill in the build command |
-| Test | TODO: not detected — fill in the test command |
-| Lint | TODO: not detected — fill in the lint command |
+| Build | `npm run build` |
+| Test | `npm test` |
+| Lint | `npm run lint` |
 
 If a cell still says TODO, fill it in from `package.json`/`Makefile` and commit; `specweave verify` runs these rows.
 
 ## Project notes
 
-(architecture map, things agents get wrong here, recurring mistakes; keep it short)
+- The game is EYEWALL: Marazul Bay, an original battle royale. Do not add names, art, sounds or layouts from any existing game.
+- `npm run dev` serves it on http://127.0.0.1:5183. `npm test` runs Playwright headless on the real GPU (`--use-angle=vulkan`); `EYEWALL_SWIFTSHADER=1` forces software rendering.
+- Tests read state from `window.__eyewall` (see `src/core/debug.ts`) and drive the game with real key and mouse events.
+- Gameplay runs in the fixed 60 Hz step (`fixedUpdate`), visuals in the per-frame step. Read input edges with `input.pressed()` inside the fixed step only.
+- Coordinates: X east, Z south, Y up, metres. Sea level is y = 0, streets are y = 2.0. Yaw 0 faces -Z (north).
+- The whole city derives from `src/world/layout.ts`. Change the layout there, not in the meshes.
+- Shipped binaries live in `public/assets/` and must be listed in `public/assets/credits.json` (`npm run credits`). Raw downloads stay in ignored `.temp/`.
+- Lint is oxlint (typescript-eslint does not support TypeScript 7 yet). Type checking is `npm run typecheck`.

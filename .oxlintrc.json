@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-console": "off",
+    "no-underscore-dangle": "off",
+    "no-await-in-loop": "off",
+    "no-shadow": "off",
+    "no-negated-condition": "off",
+    "no-new": "off",
+    "no-unneeded-ternary": "off",
+    "no-extraneous-class": "off",
+    "no-new-array": "off",
+    "prefer-add-event-listener": "off",
+    "no-array-for-each": "off",
+    "no-thenable": "off"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    ".temp",
+    "public",
+    "test-results",
+    "evidence"
+  ]
+}
