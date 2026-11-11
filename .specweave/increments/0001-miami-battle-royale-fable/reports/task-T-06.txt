@@ -1,0 +1,11 @@
+$ npx playwright test tests/e2e/combat.spec.ts
+# exit 0 — 2026-11-11T23:11:37.668Z
+
+
+Running 3 tests using 1 worker
+
+  ✓  1 tests/e2e/combat.spec.ts:63:3 › weapons, combat and loot › opens a container, takes the weapon and ammunition, and the display shows them (5.0s)
+  ✓  2 tests/e2e/combat.spec.ts:127:3 › weapons, combat and loot › five weapon classes fire with recoil, spread, tracers and impacts, reload and switch (13.7s)
+  ✓  3 tests/e2e/combat.spec.ts:227:3 › weapons, combat and loot › rivals are eliminated, headshots hurt more, and grenades and medicine work (21.1s)
+
+  3 passed (43.2s)
