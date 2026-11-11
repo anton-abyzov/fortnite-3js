@@ -16,9 +16,6 @@ import { ITEMS, type ItemId } from './gameplay/items';
 import { PlayerController } from './gameplay/player';
 import { Physics } from './physics/physics';
 import { Effects } from './render/particles';
-import { installBoats } from './vehicles/boats';
-import { installCars } from './vehicles/cars';
-import { installShops } from './world/shops';
 import type { Vehicle } from './vehicles/vehicle';
 import { World } from './world/world';
 
@@ -114,12 +111,21 @@ export class Game {
     this.world = World.create(this.options.seed, this.engine.scene, this.engine.renderer, this.physics, this.settings, progress);
     this.addSystem(this.fx);
     this.drop = this.addSystem(new Drop(this));
-    progress(0.78, 'Parking cars');
-    await installCars(this);
-    progress(0.82, 'Mooring boats');
-    await installBoats(this);
-    progress(0.86, 'Opening the shops');
-    await installShops(this);
+    // `?without=cars,boats,shops` leaves parts of the world out, to look at one part alone. Each part
+    // loads as its own chunk, so one that is left out is never fetched.
+    const without = new Set((new URLSearchParams(location.search).get('without') ?? '').split(','));
+    if (!without.has('cars')) {
+      progress(0.78, 'Parking cars');
+      await (await import('./vehicles/cars')).installCars(this);
+    }
+    if (!without.has('boats')) {
+      progress(0.82, 'Mooring boats');
+      await (await import('./vehicles/boats')).installBoats(this);
+    }
+    if (!without.has('shops')) {
+      progress(0.86, 'Opening the shops');
+      await (await import('./world/shops')).installShops(this);
+    }
     this.settings.onChange((_data, changed) => {
       if (changed !== 'quality') return;
       this.engine.applyQuality();
