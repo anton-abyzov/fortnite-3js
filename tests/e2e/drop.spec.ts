@@ -45,22 +45,19 @@ test.describe('seaplane drop', () => {
     await jump(page);
     await expect(page.locator('.altimeter')).toHaveClass(/show/);
 
-    // Steering: holding D pushes the body toward the right of the view.
+    // Steering: the body leaves the seaplane carrying its speed, some of it across the view.
+    // Holding the key against that drift turns it round and sends the body the other way.
     const before = await player(page);
     const rx = Math.cos(before.camYaw);
     const rz = -Math.sin(before.camYaw);
-    const sideways = before.vx * rx + before.vz * rz;
-    await page.keyboard.down('KeyD');
-    await expect
-      .poll(
-        async () => {
-          const p = await player(page);
-          return p.vx * rx + p.vz * rz - sideways;
-        },
-        { timeout: 30_000, intervals: [50] },
-      )
-      .toBeGreaterThan(10);
-    await page.keyboard.up('KeyD');
+    const sideways = (p: Player): number => p.vx * rx + p.vz * rz;
+    const drift = sideways(before);
+    const key = drift > 0 ? 'KeyA' : 'KeyD';
+    const way = drift > 0 ? -1 : 1;
+    await page.keyboard.down(key);
+    await expect.poll(async () => sideways(await player(page)) * way, { timeout: 30_000, intervals: [50] }).toBeGreaterThan(10);
+    await page.keyboard.up(key);
+    expect((await player(page)).state, 'still falling free').toBe('freefall');
 
     // Diving: holding W falls faster than the spread position ever does.
     await page.keyboard.down('KeyW');

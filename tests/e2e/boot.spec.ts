@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { canvasVariety, expectNoErrors, openGame, state, watchConsole } from './helpers';
 
-test('the game boots to the title, Play starts on foot, and the scene renders on the GPU', async ({ page }) => {
+test('the game boots to the title, Play starts the match aboard the seaplane, and the scene renders on the GPU', async ({ page }) => {
   const watch = watchConsole(page);
   await openGame(page);
   const first = await state(page);
@@ -19,8 +19,10 @@ test('the game boots to the title, Play starts on foot, and the scene renders on
   // The title has faded: what is on screen now is the city itself.
   await page.waitForTimeout(600);
   expect(await canvasVariety(page)).toBeGreaterThan(0.05);
+  // A match opens aboard the seaplane, high over the bay.
   const player = await page.evaluate(() => window.__eyewall!.player());
-  expect(player?.grounded).toBe(true);
+  expect(player?.state).toBe('plane');
+  expect(player?.altitude).toBeGreaterThan(300);
   await page.screenshot({ path: 'evidence/boot.png' });
   expectNoErrors(watch);
 });
