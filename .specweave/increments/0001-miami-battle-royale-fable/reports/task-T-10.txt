@@ -1,0 +1,10 @@
+$ npx playwright test tests/e2e/bots.spec.ts
+# exit 0 — 2026-11-12T00:39:18.350Z
+
+
+Running 2 tests using 1 worker
+
+  ✓  1 tests/e2e/bots.spec.ts:24:3 › bots › a round plays itself out to one survivor while the player does nothing (1.6m)
+  ✓  2 tests/e2e/bots.spec.ts:85:3 › bots › armed bots find the player, shoot, and can be shot (8.6s)
+
+  2 passed (1.7m)

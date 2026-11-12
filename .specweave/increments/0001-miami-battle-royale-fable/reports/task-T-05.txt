@@ -1,67 +1,11 @@
 $ npx playwright test tests/e2e/drop.spec.ts
-# exit 1 — 2026-11-11T23:10:53.566Z
+# exit 0 — 2026-11-12T01:00:07.792Z
 
 
 Running 3 tests using 1 worker
 
-  ✘  1 tests/e2e/drop.spec.ts:31:3 › seaplane drop › boards the seaplane, jumps, steers the fall, opens the parachute and lands alive (3.0m)
-  ✘  2 tests/e2e/drop.spec.ts:93:3 › seaplane drop › the parachute opens by itself and nobody rides the seaplane home (3.0m)
-  ✓  3 tests/e2e/drop.spec.ts:119:3 › seaplane drop › lands on a rooftop, on a street and in the water (49.8s)
+  ✓  1 tests/e2e/drop.spec.ts:31:3 › seaplane drop › boards the seaplane, jumps, steers the fall, opens the parachute and lands alive (38.6s)
+  ✓  2 tests/e2e/drop.spec.ts:93:3 › seaplane drop › the parachute opens by itself and nobody rides the seaplane home (1.0m)
+  ✓  3 tests/e2e/drop.spec.ts:119:3 › seaplane drop › lands on a rooftop, on a street and in the water (36.7s)
 
-
-  1) tests/e2e/drop.spec.ts:31:3 › seaplane drop › boards the seaplane, jumps, steers the fall, opens the parachute and lands alive 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: "normal"
-    Received: "chute"
-
-    Call Log:
-    - Test timeout of 180000ms exceeded
-
-      23 | /** Wait until the player is back on their own feet (or swimming). */
-      24 | async function landed(page: Page): Promise<Player> {
-    > 25 |   await expect.poll(async () => (await player(page)).state, { timeout: 150_000, intervals: [500] }).toBe('normal');
-         |                                                                                                     ^
-      26 |   await page.waitForTimeout(600);
-      27 |   return player(page);
-      28 | }
-        at landed (/srv/work/github/fortnite-3js/tests/e2e/drop.spec.ts:25:101)
-        at /srv/work/github/fortnite-3js/tests/e2e/drop.spec.ts:82:24
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/drop-seaplane-drop-boards--72a1f-e-parachute-and-lands-alive/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results/drop-seaplane-drop-boards--72a1f-e-parachute-and-lands-alive/error-context.md
-
-  2) tests/e2e/drop.spec.ts:93:3 › seaplane drop › the parachute opens by itself and nobody rides the seaplane home 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: "normal"
-    Received: "chute"
-
-    Call Log:
-    - Test timeout of 180000ms exceeded
-
-      23 | /** Wait until the player is back on their own feet (or swimming). */
-      24 | async function landed(page: Page): Promise<Player> {
-    > 25 |   await expect.poll(async () => (await player(page)).state, { timeout: 150_000, intervals: [500] }).toBe('normal');
-         |                                                                                                     ^
-      26 |   await page.waitForTimeout(600);
-      27 |   return player(page);
-      28 | }
-        at landed (/srv/work/github/fortnite-3js/tests/e2e/drop.spec.ts:25:101)
-        at /srv/work/github/fortnite-3js/tests/e2e/drop.spec.ts:114:25
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/drop-seaplane-drop-the-par-62578-ody-rides-the-seaplane-home/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: test-results/drop-seaplane-drop-the-par-62578-ody-rides-the-seaplane-home/error-context.md
-
-  2 failed
-    tests/e2e/drop.spec.ts:31:3 › seaplane drop › boards the seaplane, jumps, steers the fall, opens the parachute and lands alive 
-    tests/e2e/drop.spec.ts:93:3 › seaplane drop › the parachute opens by itself and nobody rides the seaplane home 
-  1 passed (7.0m)
+  3 passed (2.3m)

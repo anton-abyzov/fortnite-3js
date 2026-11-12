@@ -1,0 +1,13 @@
+$ npx playwright test tests/e2e/car.spec.ts
+# exit 0 — 2026-11-12T00:44:35.935Z
+
+
+Running 5 tests using 1 worker
+
+  ✓  1 tests/e2e/car.spec.ts:62:3 › cars › parked cars are spread across the city, clear of the lanes and of each other (5.8s)
+  ✓  2 tests/e2e/car.spec.ts:98:3 › cars › get in, pass 60 km/h, steer, brake, drift on the handbrake and get out (23.1s)
+  ✓  3 tests/e2e/car.spec.ts:175:3 › cars › suspension works over a kerb, wheel by wheel, and settles (7.8s)
+  ✓  4 tests/e2e/car.spec.ts:227:3 › cars › a crash damages the car (12.1s)
+  ✓  5 tests/e2e/car.spec.ts:252:3 › cars › traffic keeps to its lanes, crosses junctions and stops for someone in the road (24.8s)
+
+  5 passed (1.2m)

@@ -1,0 +1,11 @@
+$ npx playwright test tests/e2e/shops.spec.ts
+# exit 0 — 2026-11-12T00:40:41.963Z
+
+
+Running 3 tests using 1 worker
+
+  ✓  1 tests/e2e/shops.spec.ts:126:3 › shops › every shop has a furnished room, and the player walks in, buys at the counter and is refused without the cash (16.4s)
+  ✓  2 tests/e2e/shops.spec.ts:251:3 › shops › in a cafe the player drinks from the fridge when hurt, sits on a stool and plays the jukebox (17.2s)
+  ✓  3 tests/e2e/shops.spec.ts:308:3 › shops › in a surf shop the player changes outfit in a booth, then buys a cola from the machine outside (18.0s)
+
+  3 passed (52.4s)
