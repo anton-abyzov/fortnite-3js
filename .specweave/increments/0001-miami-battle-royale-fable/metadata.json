@@ -1,0 +1,15 @@
+{
+  "id": "0001-miami-battle-royale-fable",
+  "uuid": "7e83ba02-60fb-48ac-af2f-bc4b85278045",
+  "status": "abandoned",
+  "type": "feature",
+  "priority": "P1",
+  "created": "2026-11-11T18:21:56.588Z",
+  "updated": "2026-11-11T18:21:56.588Z",
+  "lastActivity": "2026-11-11T18:29:06.220Z",
+  "title": "Original Miami-inspired battle royale browser game (Fable build)",
+  "project": "fortnite-3js",
+  "closeReason": "superseded by 0002-sunbreak-miami-gemini",
+  "abandonedReason": "superseded by 0002-sunbreak-miami-gemini",
+  "abandonedAt": "2026-11-11T18:29:06.220Z"
+}

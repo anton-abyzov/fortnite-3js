@@ -1,0 +1,13 @@
+{
+  "id": "0002-sunbreak-miami-gemini",
+  "uuid": "10f6563f-eaab-4066-831c-622a38907824",
+  "status": "active",
+  "type": "feature",
+  "priority": "P1",
+  "created": "2026-11-11T18:29:06.215Z",
+  "updated": "2026-11-11T18:29:06.215Z",
+  "lastActivity": "2026-11-11T18:29:06.220Z",
+  "title": "Sunbreak Biscayne: Photoreal Miami Drop Royale (Gemini Build)",
+  "project": "fortnite-3js",
+  "supersedes": "0001-miami-battle-royale-fable"
+}
