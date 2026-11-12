@@ -44,6 +44,19 @@
       th.f { color: var(--fable); } th.c { color: var(--carbon); }
       td:first-child { text-align: right; color: var(--dim); font-weight: 600; }
       tr + tr td { border-top: 1px solid var(--line); }
+      .how { max-width: 66ch; margin: 0 auto 22px; text-align: center; color: #c7d6de; }
+      .lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; align-items: start; }
+      .list { border-radius: 14px; background: rgba(2, 8, 12, 0.6); box-shadow: 0 0 0 1px var(--line); padding: 18px 20px 20px; }
+      .list.f { --c: var(--fable); } .list.c { --c: var(--carbon); }
+      .list header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 10px; }
+      .list header b { color: var(--c); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; }
+      .list header span { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .list ol { list-style: none; margin: 0; padding: 0; font-size: 15.5px; }
+      .list li { display: grid; grid-template-columns: 20px 42px 1fr; gap: 8px; align-items: baseline; padding: 4px 0; }
+      .list li::before { content: "✓"; color: #06141c; background: var(--c); border-radius: 50%; width: 18px; height: 18px; font-size: 12px; font-weight: 900; display: inline-grid; place-items: center; align-self: center; }
+      .list li.open::before { content: ""; background: none; box-shadow: inset 0 0 0 2px var(--dim); }
+      .list code { color: var(--dim); font-size: 13px; }
+      .list p { margin: 12px 0 0; font-size: 14px; color: var(--dim); }
       .notes { max-width: 68ch; margin: 30px auto 0; color: var(--dim); font-size: 15px; }
       .notes li { margin: 6px 0; }
       a { color: #cfe6f2; }
@@ -85,16 +98,62 @@
         <table>
           <tr><th></th><th class="f">Fable 5.2</th><th class="c">Carbon</th></tr>
           <tr><td>Lines of game code</td><td>35,900</td><td>8,300</td></tr>
-          <tr><td>Automated tests</td><td>40</td><td>17</td></tr>
+          <tr><td>Tasks in the spec</td><td>16</td><td>8</td></tr>
+          <tr><td>Automated tests</td><td>41</td><td>17</td></tr>
           <tr><td>Rivals in a round</td><td>23</td><td>18</td></tr>
-          <tr><td>Time to finish</td><td>8 hours</td><td>2 hours</td></tr>
+          <tr><td>Time to finish</td><td>9 hours</td><td>2 hours</td></tr>
         </table>
+      </div>
+
+      <h3>How they were built</h3>
+      <p class="how">
+        Both agents ran on <a href="https://spec-weave.com">SpecWeave</a>, an open-source spec loop for coding agents.
+        The brief becomes a spec with acceptance criteria, the spec becomes tasks, and a task closes only when its test
+        passes. The test log and the commit stay in git as the proof.
+      </p>
+      <div class="lists">
+        <section class="list f" aria-label="Tasks of the Fable 5.2 build">
+          <header><b>Claude Fable 5.2</b><span>15 of 16 closed</span></header>
+          <ol>
+              <li><code>T-01</code><span>Scaffold, engine loop and headless test harness</span></li>
+              <li><code>T-02</code><span>Asset pipeline and credits check</span></li>
+              <li><code>T-03</code><span>Marazul Bay world: layout, terrain, roads, buildings, props, sky, water</span></li>
+              <li><code>T-04</code><span>Character rig, locomotion animation, IK and third-person camera</span></li>
+              <li><code>T-05</code><span>Seaplane drop, freefall, parachute and landing</span></li>
+              <li><code>T-06</code><span>Weapons, combat, loot and inventory</span></li>
+              <li><code>T-07</code><span>Cars and traffic</span></li>
+              <li><code>T-08</code><span>Boats, jet skis, buoyancy and swimming</span></li>
+              <li><code>T-09</code><span>Enterable shops and interactables</span></li>
+              <li><code>T-10</code><span>Bots</span></li>
+              <li><code>T-11</code><span>Match loop, zone, HUD, minimap, menus</span></li>
+              <li><code>T-12</code><span>Audio, music, settings and quality presets</span></li>
+              <li><code>T-13</code><span>AI-generated key art, billboards and signs</span></li>
+              <li><code>T-14</code><span>Multiplayer evaluation</span></li>
+              <li><code>T-15</code><span>Performance, polish, full playthrough evidence and README</span></li>
+              <li class="open"><code>T-16</code><span>Verify and close</span></li>
+          </ol>
+          <p><a href="https://github.com/anton-abyzov/fortnite-3js/blob/build/fable/.specweave/increments/0001-miami-battle-royale-fable/spec.md">Read the spec and its 15 acceptance criteria</a></p>
+        </section>
+        <section class="list c" aria-label="Tasks of the Carbon build">
+          <header><b>Gemini 4 Carbon</b><span>8 of 8 closed</span></header>
+          <ol>
+              <li><code>T-01</code><span>Scaffold: Vite, TypeScript, three.js, Rapier, path tracer and test harness</span></li>
+              <li><code>T-02</code><span>Generated 3D models and a skeletal humanoid rig</span></li>
+              <li><code>T-03</code><span>Lighting, time-of-day cycle, caustic water and GPU path tracer</span></li>
+              <li><code>T-04</code><span>Coastal world, canals, bridges, beach and enterable shops</span></li>
+              <li><code>T-05</code><span>Human locomotion, two-bone IK, parachute and player controller</span></li>
+              <li><code>T-06</code><span>Cars with raycast suspension, jet skis and speedboats</span></li>
+              <li><code>T-07</code><span>Weapons, bots, storm zone, audio, HUD and end-to-end verification</span></li>
+              <li><code>T-08</code><span>Multiplayer evaluation and documentation</span></li>
+          </ol>
+          <p><a href="https://github.com/anton-abyzov/fortnite-3js/blob/build/gemini/.specweave/increments/0003-sunbreak-biscayne/spec.md">Read the spec and its 8 acceptance criteria</a></p>
+        </section>
       </div>
 
       <ul class="notes">
         <li>Both games need a desktop browser with a keyboard and a mouse. Both are solo against bots.</li>
         <li>Fable 5.2 ran in Claude Code and Carbon ran in Devin, each on its own branch of the same repository. Carbon was also asked to push its lighting.</li>
-        <li>The counts come from each branch on November 11, 2026: lines under <code>src</code>, tests in the repository, and the time between the first and last commit of the build.</li>
+        <li>The counts come from each branch on November 11, 2026: lines under <code>src</code>, tests and tasks in the repository, and the time from the first commit to the last closed task.</li>
         <li>Both clips in the video were filmed in the browser on the same Linux mini PC with an integrated GPU.</li>
         <li>
           Source: <a href="https://github.com/anton-abyzov/fortnite-3js/tree/build/fable">build/fable</a> and
