@@ -463,7 +463,8 @@ await page.evaluate(
     style.textContent = `
       #film-caption { position: fixed; left: 50%; top: ${tall ? '16%' : '11%'}; transform: translateX(-50%); z-index: 60;
         font: 800 ${tall ? '5.4vw' : '3.1vw'}/1.05 "Lato", "Segoe UI", system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase;
-        color: #fff; text-shadow: 0 .12em .5em rgba(0,0,0,.75), 0 0 .08em rgba(0,0,0,.9); white-space: nowrap; display: none; }
+        color: #fff; text-shadow: 0 .12em .5em rgba(0,0,0,.75), 0 0 .08em rgba(0,0,0,.9); display: none;
+        ${tall ? 'width: 84vw; text-align: center; text-wrap: balance;' : 'white-space: nowrap;'} }
       #film-caption::after { content: ''; display: block; height: .1em; margin: .22em auto 0; width: 2.2em; border-radius: 1em; background: #ffb45e; }
       #film-end { position: fixed; inset: 0; z-index: 61; display: none; flex-direction: column; align-items: center; justify-content: center;
         background: radial-gradient(ellipse at center, rgba(6,16,24,.35), rgba(6,16,24,.82)); color: #fff; text-align: center;

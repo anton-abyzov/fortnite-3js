@@ -104,10 +104,14 @@ test.describe('playthrough', () => {
     await page.evaluate(() => {
       const w = window as unknown as { __keep: boolean };
       w.__keep = true;
-      const me = window.__eyewall!.game.player!;
+      const game = window.__eyewall!.game;
+      const me = game.player!;
       setInterval(() => {
         if (w.__keep && me.alive) me.health = Math.max(me.health, 70);
       }, 50);
+      // One sniper round or a point-blank shotgun takes more than that in a single hit: no hit is that large here.
+      const hurt = game.hurt.bind(game);
+      game.hurt = (target, amount, info) => hurt(target, w.__keep && target === me ? Math.min(amount, 30) : amount, info);
     });
     // Ride until the doors are open and the city is underneath.
     for (let i = 0; i < 240; i++) {
@@ -304,11 +308,15 @@ test.describe('playthrough', () => {
     await until(page, () => player(page), (p) => String(p.prompt).includes('Shop at'), 'the counter to offer itself', 15_000);
     await page.keyboard.press('KeyE');
     await expect(page.locator('.shop-panel.show')).toBeVisible();
-    const cash = (await player(page))['cash'] as number;
-    const pistols = ((await player(page))['items']['pistol'] as number | undefined) ?? 0;
-    await page.keyboard.press('Digit1');
+    const purse = await player(page);
+    const cash = purse['cash'] as number;
+    // A pistol, unless the round has already handed one over (a counter will not sell a second): then its rounds.
+    const hasPistol = ((purse['items']['pistol'] as number | undefined) ?? 0) > 0;
+    const [key, item] = hasPistol ? (['Digit6', 'ammo_light'] as const) : (['Digit1', 'pistol'] as const);
+    const had = (purse['items'][item] as number | undefined) ?? 0;
+    await page.keyboard.press(key);
     await expect.poll(async () => (await player(page))['cash']).toBeLessThan(cash);
-    expect((await player(page))['items']['pistol']).toBe(pistols + 1);
+    expect((await player(page))['items'][item]).toBeGreaterThan(had);
     await shot(page, '11-shop');
     await page.keyboard.press('Escape');
     await expect(page.locator('.shop-panel.show')).toBeHidden();

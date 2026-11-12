@@ -59,7 +59,9 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
     pixelRatio: 1,
     shadowMapSize: 3072,
     shadows: true,
-    msaa: 4,
+    // Four-sample targets at 1080p cost an integrated GPU most of its frame (7 frames a second over the
+    // whole city on a Radeon 780M, 50 without). High smooths edges in the post chain; Ultra multisamples.
+    msaa: 0,
     bloom: true,
     ao: false,
     waterGrid: 224,
@@ -129,18 +131,27 @@ function within(key: keyof SettingsData, value: number): number {
   return Number.isFinite(value) ? Math.min(limit[1], Math.max(limit[0], value)) : (DEFAULTS[key] as number);
 }
 
-const KEY = 'eyewall.settings.v1';
+const KEY = 'eyewall.settings.v2';
+/** The first release saved the engine's own step-downs as if the player had picked them. */
+const OLD_KEY = 'eyewall.settings.v1';
 
 export class Settings {
+  /** What is in effect now. */
   data: SettingsData;
+  /** What the player chose, which is what storage holds. The engine's own step-downs are not in it. */
+  private chosen: SettingsData;
   private listeners = new Set<(data: SettingsData, changed: keyof SettingsData) => void>();
 
   constructor() {
     this.data = { ...DEFAULTS };
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<SettingsData>;
+      const old = raw ? null : localStorage.getItem(OLD_KEY);
+      const text = raw ?? old;
+      if (text) {
+        const saved = JSON.parse(text) as Partial<SettingsData>;
+        // An old save's quality may be a step-down nobody asked for: it starts again from the default.
+        if (old) delete saved.quality;
         for (const k of Object.keys(DEFAULTS) as (keyof SettingsData)[]) {
           const v = saved[k];
           if (typeof v === typeof DEFAULTS[k]) (this.data as unknown as Record<string, unknown>)[k] = typeof v === 'number' ? within(k, v) : v;
@@ -150,21 +161,26 @@ export class Settings {
     } catch {
       // Storage can be blocked; defaults are fine.
     }
+    this.chosen = { ...this.data };
   }
 
   get quality(): QualityPreset {
     return QUALITY[this.data.quality];
   }
 
-  set<K extends keyof SettingsData>(key: K, value: SettingsData[K]): void {
+  /** Change a setting. `keep: false` is for this sitting only (the engine shedding quality on a busy GPU). */
+  set<K extends keyof SettingsData>(key: K, value: SettingsData[K], keep = true): void {
     if (typeof value === 'number') value = within(key, value) as SettingsData[K];
+    if (keep && this.chosen[key] !== value) {
+      this.chosen[key] = value;
+      try {
+        localStorage.setItem(KEY, JSON.stringify(this.chosen));
+      } catch {
+        // Ignore: settings then last for the session only.
+      }
+    }
     if (this.data[key] === value) return;
     this.data[key] = value;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(this.data));
-    } catch {
-      // Ignore: settings then last for the session only.
-    }
     for (const l of this.listeners) l(this.data, key);
   }
 

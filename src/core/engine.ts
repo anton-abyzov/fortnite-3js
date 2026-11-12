@@ -51,6 +51,16 @@ export class Engine {
   private fastWindows = 0;
   private raiseAfter = 6;
   private stalls = 0;
+  /**
+   * Until this moment (page clock, ms) slow frames are not held against the GPU: drawing has just
+   * started or the preset has just changed, and new shaders are being compiled.
+   */
+  private graceUntil = 0;
+  /** The grace also lasts until this many frames have been drawn: a page held up meanwhile draws its first frames late. */
+  private graceFrames = 0;
+  private wasDrawing = false;
+  /** Half-second windows since the resolution was last raised (large when it never was, or fell since). */
+  private sinceRaise = 1000;
   /** Recent frame times in ms, for the performance test. */
   readonly frameTimes: number[] = [];
   recordFrames = false;
@@ -114,22 +124,38 @@ export class Engine {
       this.slowWindows = 0;
       this.fastWindows = 0;
     }
+    this.sinceRaise++;
     if (this.slowWindows >= 2) {
       this.slowWindows = 0;
       if (this.renderScale > MIN_RENDER_SCALE + 0.005) {
-        // A step up that did not hold makes the next try wait longer.
-        this.raiseAfter = Math.min(120, this.raiseAfter * 2);
+        // A step up that did not hold makes the next try wait longer. A heavier view that needs
+        // several steps down in a row is one event, not several failed tries.
+        if (this.sinceRaise <= 12) this.raiseAfter = Math.min(120, this.raiseAfter * 2);
+        this.sinceRaise = 1000;
         this.setRenderScale(this.renderScale * (this.fps < 24 ? 0.7 : 0.85));
       } else {
         this.onStruggle?.();
       }
     } else if (this.fastWindows >= this.raiseAfter && this.renderScale < 1) {
       this.fastWindows = 0;
+      // The last step up held all this time: the next one need not wait as long.
+      if (this.sinceRaise > 12 && this.sinceRaise < 1000) this.raiseAfter = Math.max(6, Math.round(this.raiseAfter / 2));
+      this.sinceRaise = 0;
       this.setRenderScale(this.renderScale * 1.12);
     }
   }
 
+  /** Leave the frame rate alone for a moment: what follows is a hitch with a known cause. */
+  private grace(ms = 3000): void {
+    this.graceUntil = performance.now() + ms;
+    this.graceFrames = this.frameCount + 120;
+    this.slowWindows = 0;
+    this.fastWindows = 0;
+    this.stalls = 0;
+  }
+
   applyQuality(): void {
+    this.grace();
     const q = this.settings.quality;
     this.applyPixelRatio();
     this.renderer.shadowMap.enabled = q.shadows;
@@ -216,22 +242,27 @@ export class Engine {
     this.fpsAccum += frameDt;
     this.fpsFrames++;
     if (this.recordFrames) this.frameTimes.push(this.frameMs);
-    if (this.running && this.adaptive && this.renderEnabled && !document.hidden) {
+    // The picture has just come back from behind a menu: its first frames are not a measure of the GPU.
+    if (this.renderEnabled && !this.wasDrawing) this.grace();
+    this.wasDrawing = this.renderEnabled;
+    const settled = performance.now() >= this.graceUntil && this.frameCount >= this.graceFrames;
+    if (settled && this.running && this.adaptive && this.renderEnabled && !document.hidden) {
       // Frames this slow mean the GPU is starved (shared with something heavy): shed work at once
       // instead of waiting for the half-second averages, which take many slow frames to fill.
       this.stalls = this.frameMs > 180 ? this.stalls + 1 : 0;
       if (this.stalls >= 3) {
         this.stalls = 0;
-        this.raiseAfter = Math.min(120, this.raiseAfter * 2);
-        this.setRenderScale(MIN_RENDER_SCALE);
-        this.onStruggle?.();
+        this.sinceRaise = 1000;
+        // Resolution first. The preset goes only when the lowest resolution stalls as well.
+        if (this.renderScale > MIN_RENDER_SCALE + 0.005) this.setRenderScale(MIN_RENDER_SCALE);
+        else this.onStruggle?.();
       }
     }
     if (this.fpsAccum >= 0.5) {
       this.fps = this.fpsFrames / this.fpsAccum;
       this.fpsAccum = 0;
       this.fpsFrames = 0;
-      if (this.running) this.govern();
+      if (this.running && settled) this.govern();
     }
   }
 
@@ -248,5 +279,14 @@ export class Engine {
       this.time += FIXED_DT;
       if (i % frameEvery === frameEvery - 1) h.frame(FIXED_DT * frameEvery, 0);
     }
+    // The skip held the page, which is not a slow frame: it stays out of the frame-rate count, or the
+    // governor would take it for a starved GPU and shed resolution and quality.
+    const now = performance.now();
+    this.last = now;
+    this.lastFrame = now;
+    this.fpsAccum = 0;
+    this.fpsFrames = 0;
+    this.stalls = 0;
+    this.slowWindows = 0;
   }
 }

@@ -189,11 +189,13 @@ export class Game {
       const order: QualityName[] = ['ultra', 'high', 'medium', 'low'];
       const next = order[order.indexOf(this.settings.data.quality) + 1];
       if (!next || !(next in QUALITY)) return;
-      this.settings.set('quality', next);
+      // For this sitting only: the next visit may find the GPU with nothing else to do.
+      this.settings.set('quality', next, false);
     };
     progress(0.9, 'Warming up');
     // Ray and shape queries see the colliders only after a step.
     this.physics.step();
+    this.warmUp();
     this.audio = new GameAudio(this);
     this.engine.start({
       fixed: (dt) => this.fixedUpdate(dt),
@@ -201,6 +203,34 @@ export class Game {
     });
     progress(1, 'Ready');
     this.setPhase('menu');
+  }
+
+  /**
+   * Draw the whole city once while the loading bar is still up. The first draw compiles the shaders and
+   * sends the meshes and textures to the GPU, which takes seconds: without this they would be the first
+   * seconds of the round, and the engine would take them for a GPU too slow for the preset.
+   */
+  private warmUp(): void {
+    const cam = this.engine.camera;
+    const at = cam.position.clone();
+    const facing = cam.quaternion.clone();
+    try {
+      // High over the middle of the island, looking down: everything is inside the frame.
+      cam.position.set(0, 900, 1);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld(true);
+      this.engine.post.render(0);
+      // From the street as well: the sky and the sea at a grazing angle are other shader paths.
+      cam.position.set(-60, 4, 13);
+      cam.lookAt(200, 6, 0);
+      cam.updateMatrixWorld(true);
+      this.engine.post.render(0);
+    } catch (err) {
+      console.warn('warm-up draw failed', err);
+    }
+    cam.position.copy(at);
+    cam.quaternion.copy(facing);
+    cam.updateMatrixWorld(true);
   }
 
   /**
