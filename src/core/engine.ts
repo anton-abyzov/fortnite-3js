@@ -61,6 +61,9 @@ export class Engine {
   private wasDrawing = false;
   /** Half-second windows since the resolution was last raised (large when it never was, or fell since). */
   private sinceRaise = 1000;
+  /** What the governor decided after the last frame, applied before the next one is drawn. */
+  private pendingScale: number | null = null;
+  private pendingStruggle = false;
   /** Recent frame times in ms, for the performance test. */
   readonly frameTimes: number[] = [];
   recordFrames = false;
@@ -132,16 +135,16 @@ export class Engine {
         // several steps down in a row is one event, not several failed tries.
         if (this.sinceRaise <= 12) this.raiseAfter = Math.min(120, this.raiseAfter * 2);
         this.sinceRaise = 1000;
-        this.setRenderScale(this.renderScale * (this.fps < 24 ? 0.7 : 0.85));
+        this.pendingScale = this.renderScale * (this.fps < 24 ? 0.7 : 0.85);
       } else {
-        this.onStruggle?.();
+        this.pendingStruggle = true;
       }
     } else if (this.fastWindows >= this.raiseAfter && this.renderScale < 1) {
       this.fastWindows = 0;
       // The last step up held all this time: the next one need not wait as long.
       if (this.sinceRaise > 12 && this.sinceRaise < 1000) this.raiseAfter = Math.max(6, Math.round(this.raiseAfter / 2));
       this.sinceRaise = 0;
-      this.setRenderScale(this.renderScale * 1.12);
+      this.pendingScale = this.renderScale * 1.12;
     }
   }
 
@@ -233,6 +236,16 @@ export class Engine {
    */
   step(dt: number, realDt = dt, frameDt = realDt): void {
     if (!this.handlers) return;
+    // A change of resolution or preset empties the canvas, so the governor's changes are made here,
+    // just before a frame is drawn, and never after one (which would show the empty canvas).
+    if (this.pendingScale !== null) {
+      this.setRenderScale(this.pendingScale);
+      this.pendingScale = null;
+    }
+    if (this.pendingStruggle) {
+      this.pendingStruggle = false;
+      this.onStruggle?.();
+    }
     this.advance(dt);
     if (this.renderEnabled) {
       this.renderer.info.reset();
@@ -254,8 +267,8 @@ export class Engine {
         this.stalls = 0;
         this.sinceRaise = 1000;
         // Resolution first. The preset goes only when the lowest resolution stalls as well.
-        if (this.renderScale > MIN_RENDER_SCALE + 0.005) this.setRenderScale(MIN_RENDER_SCALE);
-        else this.onStruggle?.();
+        if (this.renderScale > MIN_RENDER_SCALE + 0.005) this.pendingScale = MIN_RENDER_SCALE;
+        else this.pendingStruggle = true;
       }
     }
     if (this.fpsAccum >= 0.5) {
