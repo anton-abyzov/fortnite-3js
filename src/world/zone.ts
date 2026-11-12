@@ -46,6 +46,7 @@ const WALL_FRAG = /* glsl */ `
   uniform float uRadius;
   uniform float uFlash;
   uniform float uDay;
+  uniform float uFar;
   uniform vec3 uRain;
   uniform vec3 uGlow;
   varying vec3 vWorld;
@@ -81,6 +82,8 @@ const WALL_FRAG = /* glsl */ `
     // Lightning inside the wall lights a patch of it.
     float lit = smoothstep(0.62, 1.0, noise(vec2(around * 0.006 + floor(uTime * 0.9) * 3.7, up * 0.004)));
     col += vec3(0.85, 0.95, 1.0) * uFlash * lit * 2.4;
+    // The wall melts into the haze well before the far end of the view, so it never ends in a cut edge.
+    alpha *= 1.0 - smoothstep(uFar * 0.5, uFar * 0.9, distance(cameraPosition, vWorld));
     gl_FragColor = vec4(col, alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -128,6 +131,7 @@ export class Zone implements GameSystem {
         uRadius: { value: OPEN_RADIUS },
         uFlash: { value: 0 },
         uDay: { value: 1 },
+        uFar: { value: 2000 },
         uRain: { value: new Color(0x8fb6c4) },
         uGlow: { value: new Color(0x2ad3c2).multiplyScalar(0.5) },
       },
@@ -302,6 +306,7 @@ export class Zone implements GameSystem {
     u['uRadius']!.value = r;
     u['uFlash']!.value = this.flash;
     u['uDay']!.value = 1 - sky.night * 0.75;
+    u['uFar']!.value = this.game.engine.camera.far;
     // In the wall: the air thickens and darkens around the view.
     const cam = this.game.engine.camera.position;
     const out = this.inside(cam.x, cam.z) ? 0 : clamp01((Math.hypot(cam.x - this.x, cam.z - this.z) - this.radius) / 12 + 0.35);
