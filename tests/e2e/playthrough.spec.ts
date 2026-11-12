@@ -102,16 +102,21 @@ test.describe('playthrough', () => {
     await expect(page.locator('.tally-alive')).toHaveText('24');
     // The player is not hunted down while the sitting visits the rest of the game; the storm at the end is let through.
     await page.evaluate(() => {
-      const w = window as unknown as { __keep: boolean };
+      const w = window as unknown as { __keep: boolean; __duel: number };
       w.__keep = true;
+      w.__duel = -1;
       const game = window.__eyewall!.game;
       const me = game.player!;
       setInterval(() => {
         if (w.__keep && me.alive) me.health = Math.max(me.health, 70);
       }, 50);
       // One sniper round or a point-blank shotgun takes more than that in a single hit: no hit is that large here.
+      // And the duel further down is the player's: nobody else's bullet finishes the rival first.
       const hurt = game.hurt.bind(game);
-      game.hurt = (target, amount, info) => hurt(target, w.__keep && target === me ? Math.min(amount, 30) : amount, info);
+      game.hurt = (target, amount, info) => {
+        if (target.id === w.__duel && info.by !== me) return 0;
+        return hurt(target, w.__keep && target === me ? Math.min(amount, 30) : amount, info);
+      };
     });
     // Ride until the doors are open and the city is underneath.
     for (let i = 0; i < 240; i++) {
@@ -203,6 +208,7 @@ test.describe('playthrough', () => {
       bot.c.teleport(-71, y, -34, Math.PI / 2);
       bot.c.health = 45;
       bot.c.armor = 0;
+      (window as unknown as { __duel: number }).__duel = bot.c.id;
       return bot.c.id;
     });
     expect(rivalId, 'a living rival on the ground').toBeGreaterThanOrEqual(0);
@@ -239,6 +245,7 @@ test.describe('playthrough', () => {
     expect((await match(page)).alive).toBeLessThan(aliveBefore);
     await expect(page.locator('.tally-kills')).toHaveText('1');
     await expect(page.locator('.feed-line').filter({ hasText: 'You' }).first()).toBeVisible();
+    await page.evaluate(() => void ((window as unknown as { __duel: number }).__duel = -1));
     await shot(page, '08-kill');
 
     // ---- a car: E at the driver's door, W down the beach road, the handbrake, E to get out ----
