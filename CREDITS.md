@@ -34,6 +34,8 @@ Every brand name in these pictures is fictional and was invented for the game: C
 
 Each picture was downloaded as a PNG, cropped and resized with sharp, and encoded as WebP without metadata.
 
+Where they appear in the game: the title key art is the backdrop of the title screen. The eight billboards stand on rooftops and on poles beside the plaza, the pier and the causeway. The six murals are painted on blank side walls. The six posters hang in shop windows and inside the shops. `public/assets/img/art.json` lists the pictures; `src/world/billboards.ts` places them.
+
 ## Project files
 
 | Asset | Author | Licence |

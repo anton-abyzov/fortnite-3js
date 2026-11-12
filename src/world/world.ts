@@ -4,6 +4,7 @@ import type { Physics } from '../physics/physics';
 import { Materials } from '../render/materials';
 import { Sky } from '../render/sky';
 import { Water } from '../render/water';
+import { Billboards } from './billboards';
 import { buildBuildings, type CityBuild } from './buildings';
 import { WorldField } from './field';
 import { buildLayout, type Layout } from './layout';
@@ -52,6 +53,7 @@ export class World {
     progress(0.62, 'Planting palms');
     this.props = buildProps(this.layout, this.field, roads.medians, this.materials, physics, q);
     this.group.add(this.props.group);
+    this.group.add(new Billboards(this.layout, this.field, this.city, this.props, this.materials, physics, renderer, q).group);
     this.streetLights = new StreetLights(scene, this.props.lamps, q.streetLights);
     progress(0.7, 'Filling the canals');
     this.water = new Water(scene, this.field, this.sky, q);
