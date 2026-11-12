@@ -50,12 +50,12 @@
       "changes": "Thirty models packed into one file."
     },
     {
-      "files": ["img/title.webp"],
+      "files": ["img/title.webp", "img/social-card.jpg"],
       "title": "EYEWALL title key art",
       "author": "EYEWALL project",
       "license": "Original (AI-generated, project-owned)",
       "source": "tools/gen-art.mjs (Higgsfield API, Marketing Studio Image 2.5 Flare)",
-      "changes": "Resized to 1920x1080 and encoded as WebP without metadata."
+      "changes": "Resized to 1920x1080 and encoded as WebP without metadata. The link preview card is the same picture cropped to 1200x630 with the title set over it."
     },
     {
       "files": ["img/billboards/*"],

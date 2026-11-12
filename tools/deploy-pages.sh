@@ -10,8 +10,22 @@ remote="$(git -C "$root" remote get-url origin)"
 work="$root/.temp/pages"
 sha="$(git -C "$root" rev-parse --short HEAD)"
 
-npm --prefix "$root" run build
-node "$root/tools/check-credits.mjs"
+# Build what is committed, not what happens to be in the working tree.
+src="$root/.temp/release"
+rm -rf "$src"
+mkdir -p "$src"
+git -C "$root" archive HEAD | tar -x -C "$src"
+ln -s "$root/node_modules" "$src/node_modules"
+site="${EYEWALL_SITE:-$(node -e '
+  const m = process.argv[1].match(/github\.com[:\/]([^\/]+)\/(.+?)(\.git)?$/);
+  if (m) console.log(`https://${m[1].toLowerCase()}.github.io/${m[2]}/${process.argv[2]}/`);
+' "$remote" "$slot")}"
+(
+  cd "$src"
+  npx tsc --noEmit
+  EYEWALL_SITE="$site" EYEWALL_VITE_CACHE="$root/.temp/vite-cache-release" npx vite build
+  node tools/check-credits.mjs
+)
 
 rm -rf "$work"
 if git ls-remote --exit-code --heads "$remote" gh-pages >/dev/null 2>&1; then
@@ -24,7 +38,7 @@ fi
 
 rm -rf "${work:?}/$slot"
 mkdir -p "$work/$slot"
-cp -R "$root/dist/." "$work/$slot/"
+cp -R "$src/dist/." "$work/$slot/"
 # Serve the files as they are: no Jekyll pass over them.
 touch "$work/.nojekyll"
 # The bare address sends visitors to this build until someone puts a front page there.
@@ -51,5 +65,5 @@ if git -C "$work" diff --cached --quiet; then
 else
   git -C "$work" commit --quiet -m "Deploy $slot from $sha"
   git -C "$work" push --quiet origin gh-pages
-  echo "deploy-pages: pushed $slot/ from $sha"
+  echo "deploy-pages: pushed $slot/ from $sha, served at $site"
 fi

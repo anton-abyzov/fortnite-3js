@@ -25,7 +25,7 @@ All 21 pictures came from the same provider and model: the Higgsfield API (`api.
 
 | Asset | Pictures | Provider | Model | Shipped as |
 |---|---|---|---|---|
-| EYEWALL title key art | `title` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/title.webp` |
+| EYEWALL title key art | `title` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/title.webp`, and `public/assets/img/social-card.jpg` (the same picture cropped to 1200x630 with the title set over it, for link previews) |
 | Marazul Bay billboards | `cascabel-cola`, `marazul-air`, `sol-987`, `pelican-surf`, `hotel-flamingo`, `tidewater-cold-brew`, `garza-marina`, `storm-watch` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/billboards/*.webp` |
 | Marazul Bay street murals | `flamingos`, `big-wave`, `pelican`, `fruit`, `eye`, `manatee` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/murals/*.webp` |
 | Marazul Bay shop posters | `mango-smoothie`, `sunscreen`, `arcade-night`, `fresh-ceviche`, `board-rental`, `ammo-sale` | Higgsfield API | Marketing Studio Image 2.5 Flare | `public/assets/img/posters/*.webp` |
