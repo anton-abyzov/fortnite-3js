@@ -4,7 +4,7 @@
 // turned the way a mouse would turn it.
 // Usage: node tools/trailer.mjs [--out trailer] [--size 1920x1080] [--fps 30] [--only scene,scene]
 //        [--skip scene,scene] [--hook "text over the first shot"] [--link play.example.com/eyewall]
-//        [--music game|off|file.wav] [--stems]
+//        [--music game|off|file.wav] [--stems] [--plain]
 // The sound is the game's own, rendered offline from a log of the shoot (tools/trailer-audio.mjs).
 // The dev server must be running (EYEWALL_PORT, default 5183), and ffmpeg must be on the PATH.
 import { chromium } from '@playwright/test';
@@ -25,6 +25,8 @@ const link = opt('link', '');
 const music = opt('music', 'game');
 const stems = args.includes('--stems');
 const hook = opt('hook', '');
+// No captions and no end card over the picture: shots for a film that is put together elsewhere.
+const plain = args.includes('--plain');
 const skipped = opt('skip', '');
 const port = process.env.EYEWALL_PORT ?? 5183;
 const frameDir = `.temp/film/${out}`;
@@ -410,6 +412,27 @@ const SCENES = [
     },
   },
   {
+    // Not in the trailer: a shot for films put together elsewhere, taken only when asked for by name.
+    name: 'dusk',
+    extra: true,
+    caption: 'Dusk on Ocean Parade',
+    seconds: 3.6,
+    keys: [['KeyW', 0, 3.6]],
+    prepare: () =>
+      page.evaluate(() => {
+        const api = window.__eyewall;
+        const game = api.game;
+        game.match.stop();
+        game.zone.clear();
+        api.setHour(19.0);
+        api.startAt(323, 20, Math.PI);
+        game.camera.yaw = Math.PI;
+        game.camera.pitch = -0.06;
+        game.camera.snap();
+        for (let i = 0; i < 20; i++) game.engine.step(1 / 60);
+      }),
+  },
+  {
     name: 'end',
     end: true,
     seconds: 4.2,
@@ -429,7 +452,7 @@ const SCENES = [
       window.__eyewall.view(...f.from.map((v, i) => v + (f.to[i] - v) * e));
     },
   },
-].filter((s) => (!only || only.split(',').includes(s.name)) && !skipped.split(',').includes(s.name));
+].filter((s) => (only ? only.split(',').includes(s.name) : !s.extra) && !skipped.split(',').includes(s.name));
 // A line for the feed, over the first moving shot.
 const opener = SCENES.find((s) => !s.still && !s.end);
 if (hook && opener) opener.caption = hook;
@@ -496,19 +519,19 @@ for (const scene of SCENES) {
     continue;
   }
   await page.evaluate(
-    ([caption, end]) => {
+    ([caption, end, plain]) => {
       const game = window.__eyewall.game;
       game.engine.stop();
       game.input.freeLook = true;
       window.__eyewall.chase();
       const cap = document.getElementById('film-caption');
       cap.textContent = caption ?? '';
-      cap.style.display = caption ? 'block' : 'none';
-      document.getElementById('film-end').style.display = end ? 'flex' : 'none';
+      cap.style.display = caption && !plain ? 'block' : 'none';
+      document.getElementById('film-end').style.display = end && !plain ? 'flex' : 'none';
       // The end card stands alone: no health bars under it.
       document.getElementById('ui').style.visibility = end ? 'hidden' : '';
     },
-    [scene.caption ?? '', scene.end === true],
+    [scene.caption ?? '', scene.end === true, plain],
   );
   if (scene.prepare) await scene.prepare();
   // Let the title screen finish fading out before the first moving shot.
