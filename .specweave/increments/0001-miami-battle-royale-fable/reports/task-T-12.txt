@@ -1,0 +1,11 @@
+$ npx playwright test tests/e2e/audio.spec.ts
+# exit 0 — 2026-11-12T01:36:10.789Z
+
+
+Running 3 tests using 1 worker
+
+  ✓  1 tests/e2e/audio.spec.ts:38:3 › audio, music and settings › nothing sounds before the first click; after it music plays, and steps, a box, a shot and a wound each start a voice (8.2s)
+  ✓  2 tests/e2e/audio.spec.ts:135:3 › audio, music and settings › the settings card changes volume and picture quality at once, and both survive a reload (6.3s)
+  ✓  3 tests/e2e/audio.spec.ts:239:3 › audio, music and settings › the ambience follows the place: the sea at the beach, the city inland, the seaplane aboard, the storm outside the eye (11.6s)
+
+  3 passed (26.6s)
