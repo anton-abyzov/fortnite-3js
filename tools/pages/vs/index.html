@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Fable 5.2 vs Gemini 4 Carbon: one brief, two browser battle royales</title>
+    <meta name="description" content="Two AI models were given the same brief on the same day: a battle royale that runs in a browser. Watch them side by side, then play both." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Claude Fable 5.2 vs Gemini 4 Carbon: one brief, two browser battle royales" />
+    <meta property="og:description" content="Same brief, same day. Watch the two games side by side, then play both in your browser." />
+    <meta property="og:image" content="__SITE__vs/poster.jpg" />
+    <meta property="og:url" content="__SITE__vs/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      * { box-sizing: border-box; }
+      :root { --fable: #ffb45e; --carbon: #7fd4ff; --ink: #eaf3f7; --dim: #9fb6c3; --line: rgba(255, 255, 255, 0.1); }
+      body {
+        margin: 0; color: var(--ink); font: 17px/1.55 system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #050f16 radial-gradient(ellipse at 50% 0%, #12303f 0%, #081822 55%, #050f16 100%) no-repeat;
+        min-height: 100vh;
+      }
+      main { max-width: 1080px; margin: 0 auto; padding: 44px 20px 64px; }
+      .kicker { text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 0.3em; text-transform: uppercase; color: var(--dim); margin: 0 0 14px; }
+      h1 { text-align: center; font-size: clamp(30px, 5.4vw, 54px); line-height: 1.08; margin: 0 0 16px; font-weight: 900; letter-spacing: 0.01em; }
+      h1 .f { color: var(--fable); } h1 .c { color: var(--carbon); } h1 i { font-style: normal; color: #6f8794; font-size: 0.6em; padding: 0 0.3em; }
+      .lead { text-align: center; max-width: 62ch; margin: 0 auto 28px; color: #c7d6de; }
+      video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 14px; background: #02080c; box-shadow: 0 0 0 1px var(--line), 0 24px 60px rgba(0, 0, 0, 0.55); }
+      .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; margin: 34px 0 10px; }
+      .game { border-radius: 14px; overflow: hidden; background: rgba(255, 255, 255, 0.04); box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; }
+      .game img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+      .game div { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+      .model { font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+      .game.f .model { color: var(--fable); } .game.c .model { color: var(--carbon); }
+      h2 { font-size: 24px; margin: 0; line-height: 1.2; }
+      .game p { margin: 0 0 12px; color: #c7d6de; font-size: 15.5px; flex: 1; }
+      .play { display: inline-block; align-self: flex-start; padding: 11px 22px; border-radius: 99px; font-weight: 800; text-decoration: none; color: #0b1d2a; }
+      .game.f .play { background: var(--fable); } .game.c .play { background: var(--carbon); }
+      .play:hover { filter: brightness(1.08); } .play:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+      h3 { font-size: 13px; font-weight: 800; letter-spacing: 0.3em; text-transform: uppercase; color: var(--dim); text-align: center; margin: 44px 0 14px; }
+      .wrap { overflow-x: auto; }
+      table { border-collapse: collapse; margin: 0 auto; font-size: 17px; font-weight: 700; }
+      th, td { padding: 10px 22px; text-align: center; }
+      th { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+      th.f { color: var(--fable); } th.c { color: var(--carbon); }
+      td:first-child { text-align: right; color: var(--dim); font-weight: 600; }
+      tr + tr td { border-top: 1px solid var(--line); }
+      .notes { max-width: 68ch; margin: 30px auto 0; color: var(--dim); font-size: 15px; }
+      .notes li { margin: 6px 0; }
+      a { color: #cfe6f2; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="kicker">One brief · Two AI models · One day</p>
+      <h1><span class="f">Claude Fable 5.2</span><i>vs</i><span class="c">Gemini 4 Carbon</span></h1>
+      <p class="lead">
+        Both were asked for the same thing on November 11, 2026: a battle royale that runs in a browser, with a
+        Miami-style city, a skydive, cars, boats, shops, guns and bots. Watch them side by side, then play both.
+      </p>
+      <video controls playsinline preload="metadata" poster="./poster.jpg" src="./fable-vs-carbon.mp4"></video>
+
+      <section class="games" aria-label="Play the two games">
+        <article class="game f">
+          <img src="./fable.jpg" width="960" height="540" alt="EYEWALL: a runner on a palm-lined beach road at sunset, with pastel hotels on the right" />
+          <div>
+            <span class="model">Built by Claude Fable 5.2</span>
+            <h2>EYEWALL: Marazul Bay</h2>
+            <p>Dive from a seaplane, loot, drive, ride a jet ski, shop for guns and outlast 23 rivals as the storm closes.</p>
+            <a class="play" href="../fable/">Play EYEWALL</a>
+          </div>
+        </article>
+        <article class="game c">
+          <img src="./carbon.jpg" width="960" height="540" alt="Sunbreak: Biscayne: a player beside a convertible on a beach road under a pink sunset sky" />
+          <div>
+            <span class="model">Built by Gemini 4 Carbon</span>
+            <h2>Sunbreak: Biscayne</h2>
+            <p>Parachute in, drive a convertible, ride a jet ski or a speedboat and fight 18 rivals. It has a sun cycle and a path-traced view.</p>
+            <a class="play" href="../gemini/">Play Sunbreak: Biscayne</a>
+          </div>
+        </article>
+      </section>
+
+      <h3>What each one built</h3>
+      <div class="wrap">
+        <table>
+          <tr><th></th><th class="f">Fable 5.2</th><th class="c">Carbon</th></tr>
+          <tr><td>Lines of game code</td><td>35,900</td><td>8,300</td></tr>
+          <tr><td>Automated tests</td><td>40</td><td>17</td></tr>
+          <tr><td>Rivals in a round</td><td>23</td><td>18</td></tr>
+          <tr><td>Time to finish</td><td>8 hours</td><td>2 hours</td></tr>
+        </table>
+      </div>
+
+      <ul class="notes">
+        <li>Both games need a desktop browser with a keyboard and a mouse. Both are solo against bots.</li>
+        <li>Fable 5.2 ran in Claude Code and Carbon ran in Devin, each on its own branch of the same repository. Carbon was also asked to push its lighting.</li>
+        <li>The counts come from each branch on November 11, 2026: lines under <code>src</code>, tests in the repository, and the time between the first and last commit of the build.</li>
+        <li>Both clips in the video were filmed in the browser on the same Linux mini PC with an integrated GPU.</li>
+        <li>
+          Source: <a href="https://github.com/anton-abyzov/fortnite-3js/tree/build/fable">build/fable</a> and
+          <a href="https://github.com/anton-abyzov/fortnite-3js/tree/build/gemini">build/gemini</a>.
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>
