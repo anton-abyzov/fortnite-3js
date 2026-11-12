@@ -176,6 +176,8 @@ export class Animator {
   private ikW = 0;
   private pelvis = 0;
   private visualY = 0;
+  /** Height the root was last placed for, see `place`. */
+  private placedY = 0;
   private hasVisualY = false;
   private readonly accel = new Vector3();
   private readonly lastVel = new Vector3();
@@ -296,6 +298,16 @@ export class Animator {
   }
 
   /** Forget smoothing state after a teleport. */
+  /**
+   * Move the body to where it is now without posing it again: far bodies are posed every few
+   * frames, and this keeps them gliding in between.
+   */
+  place(): void {
+    const root = this.rig.root;
+    root.position.set(this.position.x + this.rootOffset.x, root.position.y + (this.position.y - this.placedY), this.position.z + this.rootOffset.z);
+    this.placedY = this.position.y;
+  }
+
   reset(): void {
     this.hasVisualY = false;
     this.hasLook = false;
@@ -448,6 +460,7 @@ export class Animator {
     this.updateLean(dt, speed, grounded);
     const land = this.landSpring.update(0, dt);
     rig.root.position.set(this.position.x + this.rootOffset.x, this.visualY + this.bodyOffsetY + this.rootOffset.y, this.position.z + this.rootOffset.z);
+    this.placedY = this.position.y;
     if (this.rootQuat && (this.mode === 'seat' || this.mode === 'pose')) rig.root.quaternion.copy(this.rootQuat).multiply(HALF_TURN);
     else rig.root.rotation.set(this.leanPitch, this.facing + Math.PI + this.legWarp, this.leanRoll, 'YXZ');
 

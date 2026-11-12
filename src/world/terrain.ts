@@ -6,7 +6,7 @@ import type { Physics } from '../physics/physics';
 import type { Materials } from '../render/materials';
 import { beachHeight, isletHeight, SEA_BED } from './field';
 import { MeshBuilder } from './geo';
-import { type Layout, type Rect, rectContains, type Side } from './layout';
+import { STAIR, type Layout, type Rect, rectContains, type Side } from './layout';
 
 const STREET = WORLD.streetY;
 const BLOCK = WORLD.streetY + WORLD.kerb;
@@ -212,9 +212,7 @@ function buildPoolDeck(r: Rect, seed: number, deck: MeshBuilder, pool: MeshBuild
 }
 
 function buildStair(x: number, z: number, dir: Side, width: number, concrete: MeshBuilder, physics: Physics): void {
-  const steps = 13;
-  const rise = (STREET + 0.5) / steps;
-  const run = 0.42;
+  const { steps, rise, run } = STAIR;
   const tint = new Color(0.9, 0.88, 0.84);
   const dx = dir === 'e' ? 1 : dir === 'w' ? -1 : 0;
   const dz = dir === 's' ? 1 : dir === 'n' ? -1 : 0;
@@ -302,23 +300,55 @@ function buildSand(layout: Layout, materials: Materials, physics: Physics): Grou
       index[k] = id;
       return id;
     };
+    // Which quads are sand (1), which lie flat on the sea bed (0), which are left out under a slab (2).
+    const quads = new Uint8Array(nx * nz);
     for (let j = 0; j < nz; j++) {
       for (let i = 0; i < nx; i++) {
-        const cx = p.x0 + (i + 0.5) * p.step;
-        const cz = p.z0 + (j + 0.5) * p.step;
-        if (p.skip?.(cx, cz)) continue;
-        const h00 = hs[j * (nx + 1) + i]!;
-        const h11 = hs[(j + 1) * (nx + 1) + i + 1]!;
-        const h10 = hs[j * (nx + 1) + i + 1]!;
-        const h01 = hs[(j + 1) * (nx + 1) + i]!;
-        // Skip quads that lie flat on the sea bed.
-        if (Math.max(h00, h11, h10, h01) < SEA_BED + 0.02) continue;
+        if (p.skip?.(p.x0 + (i + 0.5) * p.step, p.z0 + (j + 0.5) * p.step)) quads[j * nx + i] = 2;
+        else {
+          const h = Math.max(hs[j * (nx + 1) + i]!, hs[(j + 1) * (nx + 1) + i + 1]!, hs[j * (nx + 1) + i + 1]!, hs[(j + 1) * (nx + 1) + i]!);
+          quads[j * nx + i] = h < SEA_BED + 0.02 ? 0 : 1;
+        }
+      }
+    }
+    // The sand is a sheet, not a solid: where it ends above the sea bed, a curtain down to the bed
+    // closes the hollow under it, so nobody swims in beneath a bank.
+    const curtain = (i0: number, j0: number, i1: number, j1: number, ox: number, oz: number): void => {
+      const ha = hs[j0 * (nx + 1) + i0]!;
+      const hb = hs[j1 * (nx + 1) + i1]!;
+      if (Math.max(ha, hb) < SEA_BED + 0.02) return;
+      const xa = p.x0 + i0 * p.step;
+      const za = p.z0 + j0 * p.step;
+      const xb = p.x0 + i1 * p.step;
+      const zb = p.z0 + j1 * p.step;
+      const low = SEA_BED - 0.4;
+      const ta = b.vertex(xa, ha, za, ox, 0, oz, xa * 0.12, za * 0.12, deep);
+      const tb = b.vertex(xb, hb, zb, ox, 0, oz, xb * 0.12, zb * 0.12, deep);
+      const la = b.vertex(xa, low, za, ox, 0, oz, xa * 0.12, za * 0.12 + 0.5, deep);
+      const lb = b.vertex(xb, low, zb, ox, 0, oz, xb * 0.12, zb * 0.12 + 0.5, deep);
+      // Wound to face outward: (b - a) x (down) points along (zb - za, 0, xa - xb).
+      if ((zb - za) * ox + (xa - xb) * oz < 0) {
+        b.tri(ta, tb, lb);
+        b.tri(ta, lb, la);
+      } else {
+        b.tri(ta, lb, tb);
+        b.tri(ta, la, lb);
+      }
+    };
+    const open = (i: number, j: number): boolean => i < 0 || j < 0 || i >= nx || j >= nz || quads[j * nx + i] === 0;
+    for (let j = 0; j < nz; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (quads[j * nx + i] !== 1) continue;
         const a = vert(i, j);
         const bb = vert(i, j + 1);
         const cc = vert(i + 1, j + 1);
         const d = vert(i + 1, j);
         b.tri(a, bb, cc);
         b.tri(a, cc, d);
+        if (open(i - 1, j)) curtain(i, j, i, j + 1, -1, 0);
+        if (open(i + 1, j)) curtain(i + 1, j, i + 1, j + 1, 1, 0);
+        if (open(i, j - 1)) curtain(i, j, i + 1, j, 0, -1);
+        if (open(i, j + 1)) curtain(i, j + 1, i + 1, j + 1, 0, 1);
       }
     }
     if (b.empty) continue;

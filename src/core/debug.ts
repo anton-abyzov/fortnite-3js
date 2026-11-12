@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import type { Character } from '../character/character';
 import type { Game } from '../game';
 import { randomOutfit } from '../character/rig';
-import { isItemId } from '../gameplay/items';
+import { isItemId, type ItemId } from '../gameplay/items';
 import { TIERS } from '../gameplay/weapons';
 import { angleDiff } from './math';
 import { Rng } from './rng';
@@ -62,6 +62,18 @@ export interface DebugApi {
   loot(): { containers: Record<string, any>[]; pickups: Record<string, any>[] };
   /** Effects made so far, by kind. */
   fx(): Record<string, number>;
+  /** The rivals: how many, what each is doing. */
+  bots(): Record<string, any>;
+  /** Put `count` rivals on the ground near a point (outside a round), each carrying `kit`. Returns their ids. */
+  deployBots(count: number, x: number, z: number, spread?: number, kit?: [string, number][]): number[];
+  /** The round: who is left, the kill feed, the result. */
+  match(): Record<string, any>;
+  /** The eye of the storm. */
+  zone(): Record<string, any>;
+  /** What the navigation grid says about a point, and a path between two points. */
+  nav(x: number, z: number, toX?: number, toZ?: number): Record<string, any>;
+  /** Run the game forward without drawing, as fast as the machine allows. */
+  fastForward(seconds: number): void;
   /** Let mouse movement turn the view without pointer lock (headless browsers cannot lock the pointer). */
   setFreeLook(on: boolean): void;
   /** Hold the camera at an offset from the player (for filming animation). Pass no arguments to release. */
@@ -81,6 +93,7 @@ export interface WorldProbe {
   shore: number;
 }
 
+const NAV_NAMES = ['blocked', 'land', 'road', 'water', 'exit'];
 const CELL_NAMES = ['water', 'road', 'sidewalk', 'building', 'sand', 'grass', 'plaza', 'pier', 'bridge', 'yard', 'pool', 'lot'];
 
 declare global {
@@ -228,6 +241,57 @@ export function installDebug(game: Game): DebugApi {
       pickups: game.loot.pickups.map((p) => ({ id: p.id, item: p.item, count: p.count, tier: p.tier, x: p.x, y: p.y, z: p.z })),
     }),
     fx: () => ({ ...game.fx.counts, tracers: game.fx.tracers, decals: game.fx.decals, alive: game.fx.alive }),
+    bots: () => game.bots.snapshot(),
+    deployBots: (count, x, z, spread = 12, kit = []) =>
+      game.bots
+        .deploy(
+          count,
+          x,
+          z,
+          spread,
+          kit.filter((k): k is [ItemId, number] => isItemId(k[0])),
+        )
+        .map((c) => c.id),
+    match: () => {
+      const m = game.match;
+      const r = m.result;
+      return {
+        running: m.running,
+        round: m.round,
+        time: m.time,
+        alive: m.alive,
+        total: m.combatants.length,
+        stage: m.stage,
+        feed: m.feed.map((f) => ({ ...f })),
+        result: r ? { winner: r.winnerName, winnerId: r.winner?.id ?? null, won: r.won, place: r.place, total: r.total, kills: r.kills, time: r.time, survived: r.survived } : null,
+      };
+    },
+    zone: () => {
+      const z = game.zone;
+      return { stage: z.stage, phase: z.phase, left: z.left, x: z.x, z: z.z, radius: z.radius, nextX: z.nextX, nextZ: z.nextZ, nextRadius: z.nextRadius, damage: z.damage };
+    },
+    nav: (x, z, toX, toZ) => {
+      const n = game.nav;
+      const out: Record<string, any> = { kind: NAV_NAMES[n.kindAt(x, z)], open: n.openness(x, z), buildMs: n.buildMs, counts: [...n.counts], searches: n.searches, expanded: n.expanded };
+      if (toX !== undefined && toZ !== undefined) {
+        const path: number[] = [];
+        const t0 = performance.now();
+        out['reached'] = n.findPath(x, z, toX, toZ, path);
+        out['ms'] = performance.now() - t0;
+        out['path'] = path;
+        let length = 0;
+        let px = x;
+        let pz = z;
+        for (let i = 0; i < path.length; i += 2) {
+          length += Math.hypot(path[i]! - px, path[i + 1]! - pz);
+          px = path[i]!;
+          pz = path[i + 1]!;
+        }
+        out['length'] = length;
+      }
+      return out;
+    },
+    fastForward: (seconds) => game.engine.fastForward(seconds),
     player: () => {
       const c = game.player;
       if (!c) return null;

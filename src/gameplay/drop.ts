@@ -48,6 +48,7 @@ const Z_AXIS = new Vector3(0, 0, 1);
 const _q = new Quaternion();
 const _q2 = new Quaternion();
 const _v = new Vector3();
+const _spot = { x: 0, z: 0 };
 
 /** One body in the air, from the jump to the landing. */
 interface Jumper {
@@ -65,6 +66,8 @@ interface Jumper {
   bank: number;
   /** Where a bot is heading. The player steers by hand. */
   target: Vector3 | null;
+  /** Time in the air at which the landing spot is next checked for being within reach. */
+  settled: number;
   lastSpeed: number;
 }
 
@@ -385,10 +388,33 @@ export class Drop implements GameSystem {
       let target: Vector3 | null = null;
       let jumpAt = Infinity;
       if (!c.isPlayer && pois.length > 0) {
-        const poi = pois[rng.int(0, pois.length - 1)]!;
-        const r = poi.r * 0.6 * Math.sqrt(rng.next());
-        const a = rng.range(0, Math.PI * 2);
-        target = new Vector3(poi.x + Math.cos(a) * r, 0, poi.z + Math.sin(a) * r);
+        target = new Vector3();
+        let reachable = false;
+        for (let tries = 0; tries < 14; tries++) {
+          const poi = pois[rng.int(0, pois.length - 1)]!;
+          const r = poi.r * 0.75 * Math.sqrt(rng.next());
+          const a = rng.range(0, Math.PI * 2);
+          const tx = poi.x + Math.cos(a) * r;
+          const tz = poi.z + Math.sin(a) * r;
+          // A canopy glides about two metres for each one it sinks: places far off the route are out of reach,
+          // and so are places abeam of a stretch the seaplane flies with its doors shut.
+          const off = Math.abs((tx - this.start.x) * this.dir.z - (tz - this.start.z) * this.dir.x);
+          const abeam = (tx - this.start.x) * this.dir.x + (tz - this.start.z) * this.dir.z - 90;
+          const doorX = this.start.x + this.dir.x * abeam;
+          const doorZ = this.start.z + this.dir.z * abeam;
+          if (off >= 290 || Math.abs(doorX) >= DOOR_BOX - 30 || Math.abs(doorZ) >= DOOR_BOX - 30) {
+            if (!reachable) target.set(tx, 0, tz);
+            continue;
+          }
+          target.set(tx, 0, tz);
+          reachable = true;
+          // Not on top of someone else: a round that opens with twelve duels is over in a minute.
+          let crowded = false;
+          for (const other of this.riders) if (other.target && Math.hypot(other.target.x - tx, other.target.z - tz) < 70) crowded = true;
+          if (!crowded) break;
+        }
+        // Somewhere with room to come down: not a roof, not a canal.
+        if (this.game.nav.nearestOpen(target.x, target.z, 7, 120, _spot)) target.set(_spot.x, 0, _spot.z);
         // The closest point of the run to the target, a little early, with some spread.
         const along = (target.x - this.start.x) * this.dir.x + (target.z - this.start.z) * this.dir.z;
         jumpAt = along - rng.range(20, 160);
@@ -436,7 +462,7 @@ export class Drop implements GameSystem {
   private launch(c: Character, x: number, y: number, z: number, target: Vector3 | null): void {
     const sky: SkydiveState = { dive: 0, steer: 0, time: this.time + c.id * 1.7 };
     const hang: CanopyState = { steer: 0, brake: 0, swing: 0, time: this.time + c.id * 2.3 };
-    const j: Jumper = { c, canopy: null, air: 0, open: 0, glide: { ...FALL }, sky, hang, pitch: 1.2, bank: 0, target, lastSpeed: 0 };
+    const j: Jumper = { c, canopy: null, air: 0, open: 0, glide: { ...FALL }, sky, hang, pitch: 1.2, bank: 0, target, settled: 0, lastSpeed: 0 };
     this.jumpers.set(c, j);
     c.state = 'freefall';
     c.rig.root.visible = true;
@@ -564,27 +590,51 @@ export class Drop implements GameSystem {
     }
   }
 
-  /** A bot steers for its landing spot and opens early enough to glide the rest of the way. */
+  /**
+   * A bot steers for its landing spot and opens early enough to glide the rest of the way. It aims
+   * from where it would stop if it braked now, so it arrives slow instead of sailing past the spot.
+   */
   private autopilot(j: Jumper): void {
     const c = j.c;
     const p = c.motor.position;
+    const v = c.motor.velocity;
     const t = j.target!;
-    const dx = t.x - p.x;
-    const dz = t.z - p.z;
+    const chute = c.state === 'chute';
+    const lead = Math.hypot(v.x, v.z) / (2 * (chute ? CHUTE.accel : FALL.accel));
+    const sx = p.x + v.x * lead;
+    const sz = p.z + v.z * lead;
+    const alt = this.altitude(c);
+    if (chute && j.air > j.settled) {
+      // Not going to make it: come down on the nearest open ground within reach instead.
+      j.settled = j.air + 1;
+      if (Math.hypot(t.x - sx, t.z - sz) > alt * 1.5 + 4) {
+        const nav = this.game.nav;
+        const reach = alt * 1.4 + 8;
+        if (nav.nearestOpen(sx, sz, 6, reach, _spot) || nav.nearestOpen(sx, sz, 2.5, reach, _spot)) t.set(_spot.x, 0, _spot.z);
+      }
+    }
+    const dx = t.x - sx;
+    const dz = t.z - sz;
     const d = Math.hypot(dx, dz);
     const input = c.input;
-    if (d > 4) {
-      input.moveX = dx / d;
-      input.moveZ = dz / d;
-      c.aimYaw = yawFromDir(dx, dz);
+    if (d > 0.5) {
+      // Full stick until the last few metres, then ease off.
+      const k = Math.min(1, d / 5) / d;
+      input.moveX = dx * k;
+      input.moveZ = dz * k;
     } else {
       input.moveX = 0;
       input.moveZ = 0;
     }
-    if (c.state === 'freefall' && j.air > 0.8) {
+    const tx = t.x - p.x;
+    const tz = t.z - p.z;
+    const far = Math.hypot(tx, tz);
+    if (far > 6) c.aimYaw = yawFromDir(tx, tz);
+    if (!chute && j.air > 0.8) {
       // Freefall covers little ground; a canopy covers about two metres for each one it sinks.
-      const need = (d - 25) / 1.7;
-      if (this.altitude(c) < Math.min(260, need)) input.jump = true;
+      // It opens with height in hand: a canopy needs most of a hundred metres to bite, and the rest to line up.
+      const need = (far - 25) / 1.7;
+      if (alt < Math.min(260, Math.max(need, 135 + (c.id % 5) * 11))) input.jump = true;
     }
   }
 

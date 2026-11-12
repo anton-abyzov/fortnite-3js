@@ -73,6 +73,10 @@ export class Character {
   /** Seconds since someone else last hurt them. */
   sinceHurtBy = 99;
   events: CharacterEvents = {};
+  /** Pose the skeleton every this many frames: 1 for anyone near the camera, more for far or unseen bodies. */
+  poseEvery = 1;
+  private poseWait = 0;
+  private poseDt = 0;
   /** Visual feet position this frame. */
   readonly visual = new Vector3();
   private readonly riseTo = new Vector3();
@@ -279,7 +283,12 @@ export class Character {
     a.facing = this.facing;
     a.aimYaw = this.aimYaw;
     a.aimPitch = this.aimPitch;
-    a.update(dt);
+    this.poseDt += dt;
+    if (++this.poseWait >= this.poseEvery) {
+      a.update(this.poseDt);
+      this.poseWait = 0;
+      this.poseDt = 0;
+    } else a.place();
   }
 
   dispose(): void {

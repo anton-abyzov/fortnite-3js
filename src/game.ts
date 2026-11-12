@@ -1,4 +1,5 @@
 import { Vector3 } from 'three';
+import { Bots } from './ai/bots';
 import { Character } from './character/character';
 import { ClipBank } from './character/clips';
 import { heroOutfit } from './character/rig';
@@ -10,7 +11,7 @@ import { QUALITY, type QualityName, Settings } from './core/settings';
 import type { GameSystem } from './core/system';
 import { ThirdPersonCamera } from './gameplay/camera';
 import { Drop } from './gameplay/drop';
-import { Match } from './gameplay/match';
+import { Match, type MatchResult } from './gameplay/match';
 import { Interactions } from './gameplay/interactions';
 import { Combat } from './gameplay/combat';
 import { ITEMS, type ConsumableId, type ItemId, type WeaponId } from './gameplay/items';
@@ -19,7 +20,9 @@ import { Physics } from './physics/physics';
 import { Effects } from './render/particles';
 import type { Vehicle } from './vehicles/vehicle';
 import { type Container, Loot } from './world/loot';
+import { NavGrid } from './world/navgrid';
 import { World } from './world/world';
+import { Zone, type ZoneStage } from './world/zone';
 
 export type Phase = 'boot' | 'menu' | 'loading' | 'match' | 'ended';
 
@@ -57,6 +60,12 @@ export interface GameEvents extends Record<string, unknown> {
   cash: { to: Character; amount: number };
   /** A loot container was opened. */
   opened: { container: Container; by: Character | null };
+  /** The eye of the storm changed what it is doing: holding, closing, shut. */
+  zone: { phase: number; stage: ZoneStage; left: number };
+  /** The round is over: one combatant, or none, is left. */
+  over: MatchResult;
+  /** Someone paid a shop's jukebox, which now plays `track`. `shop` is the lot id. */
+  jukebox: { shop: number; track: string; by: Character; x: number; y: number; z: number };
 }
 
 export interface GameOptions {
@@ -85,6 +94,12 @@ export class Game {
   combat!: Combat;
   /** Containers and everything lying on the ground. */
   loot!: Loot;
+  /** Where people on foot can go, and how to walk from one place to another. */
+  nav!: NavGrid;
+  /** The eye of the storm. */
+  zone!: Zone;
+  /** The rivals. */
+  bots!: Bots;
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
   readonly interactions = new Interactions();
@@ -148,6 +163,17 @@ export class Game {
       progress(0.86, 'Opening the shops');
       await (await import('./world/shops')).installShops(this);
     }
+    progress(0.88, 'Charting the streets');
+    // The grid is surveyed with physics rays, which see what was just installed only after a step.
+    this.physics.step();
+    this.nav = new NavGrid(this.world.field, this.world.layout, this.physics);
+    this.zone = this.addSystem(new Zone(this));
+    this.addSystem(this.match);
+    progress(0.89, 'Waking the rivals');
+    // The player is combatant number one; the rest wait in the wings until a round starts.
+    const player = this.ensurePlayer();
+    this.bots = this.addSystem(new Bots(this));
+    this.bots.park(player);
     this.settings.onChange((_data, changed) => {
       if (changed !== 'quality') return;
       this.engine.applyQuality();
@@ -175,8 +201,12 @@ export class Game {
    * Hurt a character. Armor soaks the damage first. Returns the damage dealt, and emits `hurt` and,
    * when it was the end of them, `kill`.
    */
+  /** A say in how hard a hit lands (the bots go easier on each other than on the player). */
+  hurtScale: ((target: Character, info: DamageInfo) => number) | null = null;
+
   hurt(target: Character, amount: number, info: DamageInfo): number {
     if (!target.alive || amount <= 0) return 0;
+    if (this.hurtScale) amount *= this.hurtScale(target, info);
     let left = amount;
     if (info.cause !== 'storm' && info.cause !== 'drown' && info.cause !== 'fall') {
       const soaked = Math.min(target.armor, left);
@@ -270,15 +300,19 @@ export class Game {
 
   /** Put the player on the ground at a point and hand over control, skipping the drop. */
   startAt(x: number, z: number, yaw = 0): Character {
-    const fresh = !this.player;
     const player = this.ensurePlayer(x, z, yaw);
     this.match.stop();
-    if (!fresh) {
-      const y = this.physics.groundHeight(x, 200, z, 400, this.world.field.heightAt(x, z)) + 0.05;
-      this.drop.release(player);
-      player.vehicle?.exit(player);
-      player.teleport(x, y, z, yaw);
+    const y = this.physics.groundHeight(x, 200, z, 400, this.world.field.heightAt(x, z)) + 0.05;
+    this.drop.release(player);
+    player.vehicle?.exit(player);
+    if (!player.alive) {
+      // Back from a lost round.
+      player.alive = true;
+      player.health = player.maxHealth;
+      player.armor = 0;
+      this.combat.reset(player);
     }
+    player.teleport(x, y, z, yaw);
     this.camera.yaw = yaw;
     this.camera.pitch = -0.12;
     this.camera.snap();

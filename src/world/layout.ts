@@ -156,6 +156,13 @@ export interface Layout {
 
 const SIDEWALK = 4;
 
+/**
+ * Quay stairs: steps of `run` metres going down `rise` each, from the kerb to well under the water.
+ * The first thirteen reach half a metre below the surface; the rest carry on down so that someone
+ * swimming, whose feet hang a metre under, can get a foot on them.
+ */
+export const STAIR = { steps: 19, run: 0.42, rise: (2.0 + 0.5) / 13 } as const;
+
 /** Canal and channel geometry, shared by the island table below. */
 export const CANAL = {
   rosa: { z0: -170, z1: -140 },
