@@ -1,0 +1,12 @@
+$ npx playwright test tests/e2e/art.spec.ts
+# exit 0 — 2026-11-12T02:40:15.442Z
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 tests/e2e/art.spec.ts:294:3 › key art, billboards and signs › the title screen shows the key art (4.6s)
+  ✓  2 tests/e2e/art.spec.ts:407:3 › key art, billboards and signs › every picture in the manifest ships with the game and is credited (88ms)
+  ✓  3 tests/e2e/art.spec.ts:427:3 › key art, billboards and signs › billboards stand on rooftops and poles and murals cover blank walls, each with its picture loaded (4.0s)
+  ✓  4 tests/e2e/art.spec.ts:513:3 › key art, billboards and signs › walking up to a billboard or a mural and looking at it puts its picture on screen, and lamps light the billboard at night (11.7s)
+
+  4 passed (21.0s)
