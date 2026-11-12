@@ -100,8 +100,9 @@ export function buildRoads(layout: Layout, materials: Materials, physics: Physic
       }
       const s0 = at + dir * 4.1;
       const s1 = at + dir * 4.45;
-      // The stop line covers the lanes approaching the junction (right-hand traffic).
-      const right = seg.axis === 'z' ? (end === 0 ? -1 : 1) : end === 0 ? 1 : -1;
+      // The stop line covers the lanes approaching the junction. Traffic keeps right: heading north
+      // (towards a lower z) its lanes are on the east side, heading west they are on the north side.
+      const right = seg.axis === 'z' ? (end === 0 ? 1 : -1) : end === 0 ? -1 : 1;
       const c0 = right > 0 ? 0.3 : -half + 0.4;
       const c1 = right > 0 ? half - 0.4 : -0.3;
       strip(Math.min(s0, s1), Math.max(s0, s1), c0, c1, MARK_Y, white);

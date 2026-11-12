@@ -127,6 +127,8 @@ export class PlayerController {
         k.brake = 0;
         k.boost = input.held('ShiftLeft');
       }
+      // The wheel does nothing at the wheel, and a turn of it is not saved up for getting out.
+      input.consumeWheel();
       if (input.pressed('KeyE') || input.pressed('KeyF')) v.exit(c);
       return;
     }
