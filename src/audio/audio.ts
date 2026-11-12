@@ -33,6 +33,8 @@ export interface PlayOptions {
 export interface LoopHandle {
   /** `gain` 0..1; `pitch` is RPM for engines (0.5..2.5) and speed for wind; a `position` makes it positional, `null` centres it again. */
   set(p: { gain?: number; pitch?: number; position?: Vec3Like | null }): void;
+  /** The same as `set` without an object to build, for a caller that steers a loop many times a second. `position` left out keeps the last one. */
+  steer(gain: number, pitch: number, position?: Vec3Like | null): void;
   stop(fadeSeconds?: number): void;
   readonly active: boolean;
 }
@@ -47,8 +49,16 @@ export interface AudioStats {
   loops: string[];
   /** The track last asked for. */
   music: MusicTrack;
+  /** Voices actually started per sound since unlock: what was left after culling, rate limits and the voice cap. */
+  started: Record<string, number>;
   /** One-shots sounding now. */
   voices: number;
+  /** Gain of the master, effects and music faders as the audio thread has them now. */
+  levels: { master: number; sfx: number; music: number };
+  /** Level of each loop as the audio thread has it now (the loudest, when several of a kind run). */
+  loopLevels: Record<string, number>;
+  /** The jukebox tune that is on, or an empty string. */
+  jukebox: string;
   /** Level at the output over the last ~40 ms. */
   peak: number;
   rms: number;
@@ -122,6 +132,29 @@ interface LoopState {
   parked: boolean;
   /** When the level last dropped to zero; negative while it is audible. */
   quietSince: number;
+  /** The level last scheduled on the fader, so a loop that is holding steady schedules nothing. */
+  sent: number;
+}
+
+/** A jukebox carries about as far as a horn does not: down the block, not across the city. */
+const JUKEBOX_RANGE: readonly [number, number] = [5, 70];
+const JUKEBOX_GAIN = 0.7;
+
+/** The cafe jukebox: its own sequencer, panned and faded like any other thing in the world. */
+interface Jukebox {
+  player: Music;
+  /** Fader: distance, and the fade when the tune's time is up. */
+  level: GainNode;
+  /** Walls and distance take the top end off. */
+  tone: BiquadFilterNode;
+  panner: PannerNode;
+  bleed: GainNode;
+  position: Vec3Like;
+  title: string;
+  /** Audio-clock time the tune stops at. */
+  until: number;
+  /** The distance its level was last set for. */
+  heardAt: number;
 }
 
 /** Unity up to 0.7, then a smooth shoulder that never passes 1. Input is pre-scaled so the curve spans -2..2. */
@@ -176,6 +209,8 @@ export class AudioEngine {
 
   private voices: Voice[] = [];
   private readonly played: Record<string, number> = {};
+  private readonly started: Record<string, number> = {};
+  private juke: Jukebox | null = null;
   private readonly lastPlay = new Map<SoundName, number>();
   private readonly lastVariant = new Map<SoundName, number>();
   private loops: LoopState[] = [];
@@ -195,6 +230,11 @@ export class AudioEngine {
     this.unsubscribe = settings.onChange((_data, key) => {
       if (key === 'masterVolume' || key === 'sfxVolume' || key === 'musicVolume') this.applySettings();
     });
+  }
+
+  /** The context is running: sound can be heard, though some buffers may still be on their way. */
+  get running(): boolean {
+    return this.graph !== null && this.graph.ctx.state === 'running';
   }
 
   /** The context is running and every buffer is rendered. */
@@ -363,6 +403,7 @@ export class AudioEngine {
     src.onended = () => this.dropVoice(voice);
     src.start(when);
     this.voices.push(voice);
+    this.started[name] = (this.started[name] ?? 0) + 1;
   }
 
   /**
@@ -370,15 +411,30 @@ export class AudioEngine {
    * `unlock()` starts as soon as audio is available.
    */
   loop(name: LoopName): LoopHandle {
-    const st: LoopState = { name, active: true, gain: 0, pitch: 1, position: null, voice: null, level: null, panner: null, bleed: null, panned: false, parked: false, quietSince: -1 };
+    const st: LoopState = { name, active: true, gain: 0, pitch: 1, position: null, voice: null, level: null, panner: null, bleed: null, panned: false, parked: false, quietSince: -1, sent: -1 };
     this.loops.push(st);
     this.attachLoop(st);
+    const place = (position: Vec3Like | null): void => {
+      if (!position) st.position = null;
+      else if (st.position) {
+        st.position.x = position.x;
+        st.position.y = position.y;
+        st.position.z = position.z;
+      } else st.position = { x: position.x, y: position.y, z: position.z };
+    };
     return {
       set: (p) => {
         if (!st.active) return;
         if (p.gain !== undefined) st.gain = Math.max(0, p.gain);
         if (p.pitch !== undefined) st.pitch = p.pitch;
-        if (p.position !== undefined) st.position = p.position ? { x: p.position.x, y: p.position.y, z: p.position.z } : null;
+        if (p.position !== undefined) place(p.position);
+        this.syncLoop(st);
+      },
+      steer: (gain, pitch, position) => {
+        if (!st.active) return;
+        st.gain = Math.max(0, gain);
+        st.pitch = pitch;
+        if (position !== undefined) place(position);
         this.syncLoop(st);
       },
       stop: (fadeSeconds = 0.3) => this.endLoop(st, fadeSeconds),
@@ -393,6 +449,65 @@ export class AudioEngine {
     this.track = track;
     this.trackFade = fadeSeconds;
     this.startMusic();
+  }
+
+  /**
+   * Starts a jukebox tune at a place in the world, for `seconds`. The tune is made from its title, so each
+   * title is its own song. It is part of the world: panned, fading with distance, under the effects volume
+   * and the muffle filter. One jukebox plays at a time; a new one takes over. Does nothing before `unlock()`.
+   */
+  jukebox(title: string, position: Vec3Like, seconds: number): void {
+    const g = this.graph;
+    if (!this.unlocked || !g || g.ctx.state !== 'running') return;
+    if (!KIT_KEYS.every((key) => g.bank.has(key))) {
+      // The drums are still being rendered: nothing to play the tune with yet.
+      g.bank.prioritise(KIT_KEYS);
+      return;
+    }
+    const ctx = g.ctx;
+    const now = ctx.currentTime;
+    let j = this.juke;
+    if (!j) {
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      const tone = ctx.createBiquadFilter();
+      tone.type = 'lowpass';
+      tone.frequency.value = g.top;
+      tone.Q.value = 0.5;
+      const panner = this.panner(ctx, position);
+      const bleed = this.bleed(ctx);
+      level.connect(tone);
+      tone.connect(panner).connect(g.sfxIn);
+      tone.connect(bleed).connect(g.sfxIn);
+      j = { player: new Music(ctx, level, g.bank), level, tone, panner, bleed, position: { x: 0, y: 0, z: 0 }, title: '', until: 0, heardAt: -1 };
+      this.juke = j;
+    }
+    j.position.x = position.x;
+    j.position.y = position.y;
+    j.position.z = position.z;
+    this.place(j.panner, j.position);
+    j.title = title;
+    j.until = now + Math.max(1, seconds);
+    j.player.playTune(title, 0.4);
+    j.heardAt = -1;
+    this.tuneJukebox(j, now, 0.02);
+  }
+
+  /** Fades the jukebox out. */
+  stopJukebox(fadeSeconds = 1.5): void {
+    const j = this.juke;
+    if (!j || j.title === '') return;
+    j.title = '';
+    j.player.stop(fadeSeconds);
+  }
+
+  /**
+   * Stops the audio clock: for a hidden tab, so nothing drones on unheard. `unlock()` starts it again.
+   * Does nothing before the first `unlock()`.
+   */
+  suspend(): void {
+    const g = this.graph;
+    if (g && g.ctx.state === 'running') void g.ctx.suspend().catch(() => undefined);
   }
 
   /** 0..1 low-pass over the sound effects and loops: under water, or deep in the storm. Interface sounds stay clear. */
@@ -420,6 +535,14 @@ export class AudioEngine {
     const now = g.ctx.currentTime;
     this.startMusic();
     g.player.update();
+    const j = this.juke;
+    if (j) {
+      if (j.title !== '') {
+        if (now >= j.until) this.stopJukebox();
+        else this.tuneJukebox(j, now, 0.08);
+      }
+      j.player.update();
+    }
     for (let i = this.voices.length - 1; i >= 0; i--) {
       const v = this.voices[i]!;
       if (now > v.end + 0.3) this.dropVoice(v);
@@ -431,7 +554,10 @@ export class AudioEngine {
       }
       const level = this.loopLevel(st);
       this.parkLoop(st, level, now);
-      if (st.position && !st.parked) st.level.gain.setTargetAtTime(level, now, 0.05);
+      if (st.position && !st.parked && Math.abs(level - st.sent) > 0.0005) {
+        st.sent = level;
+        st.level.gain.setTargetAtTime(level, now, 0.05);
+      }
       st.voice.tick?.(now, level > 0.01);
     }
   }
@@ -456,9 +582,13 @@ export class AudioEngine {
       state: g ? g.ctx.state : this.failed ? 'unavailable' : 'locked',
       ready: this.ready,
       played: { ...this.played },
+      started: { ...this.started },
       loops: this.loops.filter((l) => l.active && l.gain > 0).map((l) => l.name),
       music: this.track,
       voices: this.voices.length,
+      levels: { master: g?.master.gain.value ?? 0, sfx: g?.sfx.gain.value ?? 0, music: g?.music.gain.value ?? 0 },
+      loopLevels: this.loopLevels(),
+      jukebox: this.juke?.title ?? '',
       peak,
       rms,
     };
@@ -475,6 +605,8 @@ export class AudioEngine {
     this.failed = true;
     if (g) {
       g.player.dispose();
+      this.juke?.player.dispose();
+      this.juke = null;
       g.bank.dispose();
       g.master.disconnect();
       void g.ctx.close().catch(() => undefined);
@@ -621,6 +753,27 @@ export class AudioEngine {
     if (i >= 0) this.voices.splice(i, 1);
   }
 
+  /** Distance sets the jukebox's level and how much of its top end arrives. */
+  private tuneJukebox(j: Jukebox, now: number, glideTime: number): void {
+    const g = this.graph;
+    if (!g) return;
+    const dist = Math.hypot(j.position.x - this.lx, j.position.y - this.ly, j.position.z - this.lz);
+    if (Math.abs(dist - j.heardAt) < 0.05) return;
+    j.heardAt = dist;
+    j.level.gain.setTargetAtTime(JUKEBOX_GAIN * this.attenuation(dist, JUKEBOX_RANGE), now, glideTime);
+    j.tone.frequency.setTargetAtTime(Math.max(500, g.top * Math.exp((-3 * dist) / JUKEBOX_RANGE[1])), now, glideTime);
+  }
+
+  private loopLevels(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const st of this.loops) {
+      // A parked loop is unplugged: whatever its fader says, nothing of it is heard.
+      const level = st.level && !st.parked ? st.level.gain.value : 0;
+      out[st.name] = Math.max(out[st.name] ?? 0, level);
+    }
+    return out;
+  }
+
   private loopLevel(st: LoopState): number {
     const def = LOOPS[st.name];
     let level = st.gain * def.gain;
@@ -674,6 +827,7 @@ export class AudioEngine {
     const level = this.loopLevel(st);
     this.parkLoop(st, level, now);
     if (st.parked) return;
+    st.sent = level;
     st.level.gain.setTargetAtTime(level, now, 0.05);
     st.voice.setPitch(st.pitch, now);
   }

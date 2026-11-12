@@ -1,4 +1,6 @@
 import type { Game } from '../game';
+import { button, el } from './dom';
+import { installSettings, settingsButton } from './settings';
 
 interface StartPoint {
   name: string;
@@ -31,24 +33,29 @@ const CONTROLS: readonly [string, string][] = [
   ['R', 'Reload'],
   ['Q  X', 'Heal, armor up'],
   ['G', 'Throw a frag'],
+  ['M', 'Map'],
+  ['Esc', 'Pause'],
 ];
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+/** Classes on the page root that mean something else has the pointer and the keyboard. */
+const BUSY = ['shop-open', 'map-open', 'result-open', 'settings-open'] as const;
 
 /**
  * The page around the canvas: the title screen, the prompt for the interact key and the pause card.
  * It reads the game and calls it; the game does not know it exists.
  */
 export class Shell {
+  /** Room in the pause card, between Resume and Title, for buttons other parts add (Settings). */
+  readonly pauseSlot = el('div', 'pause-slot');
   private readonly title: HTMLElement;
   private readonly prompt: HTMLElement;
   private readonly promptText: HTMLElement;
   private readonly pause: HTMLElement;
+  private readonly resume: HTMLButtonElement;
+  private readonly hint = el('div', 'look-hint', 'Click to look around');
+  /** The round is stopped behind the pause card. */
+  private paused = false;
+  private hadLock = false;
   private readonly place: HTMLElement;
   private readonly note: HTMLElement;
   private readonly altimeter: HTMLElement;
@@ -61,10 +68,13 @@ export class Shell {
 
   constructor(
     private readonly game: Game,
-    root: HTMLElement,
+    private readonly root: HTMLElement,
   ) {
     this.title = this.buildTitle();
+    this.resume = button('pause-resume', 'Resume', () => this.setPaused(false));
     this.pause = this.buildPause();
+    installSettings(game, root);
+    this.pauseSlot.append(settingsButton());
     this.prompt = el('div', 'prompt');
     this.prompt.append(el('kbd', 'key', 'E'));
     this.promptText = el('span', 'prompt-text');
@@ -75,11 +85,17 @@ export class Shell {
     this.altValue = el('span', 'altimeter-value', '0');
     this.altLabel = el('span', 'altimeter-label', 'm above ground');
     this.altimeter.append(this.altValue, this.altLabel);
-    root.append(this.place, this.note, this.altimeter, this.prompt, this.pause, this.title);
-    game.events.on('phase', () => this.sync());
-    document.addEventListener('pointerlockchange', () => this.sync());
+    root.append(this.place, this.note, this.altimeter, this.prompt, this.hint, this.pause, this.title);
+    game.events.on('phase', () => {
+      // A new round, a fresh start or the title: whatever was paused is over.
+      this.setPaused(false, false);
+      this.sync();
+    });
+    document.addEventListener('pointerlockchange', () => this.onLock());
     window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
       if (e.code === 'Enter' && this.game.phase === 'menu') this.play();
+      else if (e.code === 'Escape' && !e.defaultPrevented && this.game.phase === 'match' && !this.busy()) this.setPaused(!this.paused);
     });
     this.sync();
     this.timer = window.setInterval(() => this.tick(), 100);
@@ -133,6 +149,7 @@ export class Shell {
     play.id = 'play';
     play.addEventListener('click', () => this.play());
     panel.append(play);
+    panel.append(settingsButton());
 
     const keys = el('dl', 'keys');
     for (const [key, what] of CONTROLS) {
@@ -141,26 +158,68 @@ export class Shell {
       keys.append(row);
     }
     panel.append(keys);
-    panel.append(el('p', 'title-note', 'Preview build: the seaplane drop, the city, the water and movement on foot. Vehicles, weapons and rivals are next.'));
+    panel.append(el('p', 'title-note', 'One round: 23 rivals drop with you. Loot coolers and duffel bags, take a car, buy at the shops, and stay inside the eye as the storm closes.'));
     screen.append(panel);
     return screen;
   }
 
   private buildPause(): HTMLElement {
     const card = el('div', 'pause');
-    card.append(el('div', 'pause-title', 'Paused'));
-    card.append(el('div', 'pause-text', 'Click to take the view again'));
-    const back = el('button', 'pause-back', 'Back to title');
-    back.type = 'button';
-    back.addEventListener('click', (e) => {
-      e.stopPropagation();
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-label', 'Paused');
+    const back = button('pause-back', 'Title', () => {
       this.game.input.setWantLock(false);
       this.game.match.stop();
       this.game.setPhase('menu');
     });
-    card.append(back);
-    card.addEventListener('click', () => this.game.input.setWantLock(true));
+    const actions = el('div', 'pause-actions');
+    actions.append(this.resume, this.pauseSlot, back);
+    const text = el('div', 'pause-text');
+    text.append(el('kbd', 'key key-small', 'Esc'), ' resumes');
+    card.append(el('div', 'pause-title', 'Paused'), actions, text);
     return card;
+  }
+
+  /** A shop counter, the full map, the result card or a settings panel is up. */
+  private busy(): boolean {
+    const c = this.root.classList;
+    for (const name of BUSY) if (c.contains(name)) return true;
+    return false;
+  }
+
+  /**
+   * The browser takes the pointer back on Escape without passing the key on, so losing the pointer
+   * in the middle of a round is the pause. Giving it up on purpose (a shop counter, free look) is not.
+   */
+  private onLock(): void {
+    const g = this.game;
+    const locked = document.pointerLockElement === g.canvas;
+    if (this.hadLock && !locked && g.phase === 'match' && !this.paused && !g.input.freeLook && !this.busy()) this.setPaused(true);
+    this.hadLock = locked;
+    this.sync();
+  }
+
+  /** Stop the round behind the pause card, or carry on. `takeView` asks for the pointer back. */
+  private setPaused(on: boolean, takeView = true): void {
+    if (on === this.paused) return;
+    const g = this.game;
+    this.paused = on;
+    // The world stops; the picture stays.
+    g.engine.timeScale = on ? 0 : 1;
+    g.input.enabled = !on;
+    this.root.classList.toggle('paused', on);
+    // The card is on the page before its button is given the keyboard.
+    this.sync();
+    if (on) {
+      g.input.setWantLock(false);
+      this.resume.focus({ preventScroll: true });
+    } else {
+      // Keys pressed while the card was up are not orders for the game.
+      g.input.endFixedStep();
+      g.input.endFrame();
+      g.canvas.focus({ preventScroll: true });
+      if (takeView && g.phase === 'match') g.input.setWantLock(true);
+    }
   }
 
   private sync(): void {
@@ -168,13 +227,16 @@ export class Shell {
     // A debug camera view is for looking at the world, so the title steps aside.
     const menu = g.phase === 'menu' && !g.cameraOverride;
     this.title.classList.toggle('hidden', !menu);
+    // Hidden, its buttons must not take the keyboard either.
+    this.title.inert = !menu;
     // The title art covers the whole canvas, so the city behind it need not be drawn.
     if (g.engine) g.engine.renderEnabled = !menu;
     const input = g.input;
     const playing = g.phase === 'match';
+    this.pause.classList.toggle('show', playing && this.paused);
     // Without the pointer the mouse cannot turn the view, so say how to get it back.
-    const paused = playing && !!input && !input.locked && !input.freeLook;
-    this.pause.classList.toggle('show', paused);
+    const adrift = playing && !this.paused && !!input && !input.locked && !input.freeLook && !this.busy();
+    this.hint.classList.toggle('show', adrift);
   }
 
   private tick(): void {

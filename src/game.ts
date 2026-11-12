@@ -1,5 +1,6 @@
 import { Vector3 } from 'three';
 import { Bots } from './ai/bots';
+import { GameAudio } from './audio/system';
 import { Character } from './character/character';
 import { ClipBank } from './character/clips';
 import { heroOutfit } from './character/rig';
@@ -100,6 +101,8 @@ export class Game {
   zone!: Zone;
   /** The rivals. */
   bots!: Bots;
+  /** Sound: one-shots, ambience, engines and music. Silent until the player's first click or key press. */
+  audio: GameAudio | null = null;
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
   readonly interactions = new Interactions();
@@ -178,6 +181,8 @@ export class Game {
       if (changed !== 'quality') return;
       this.engine.applyQuality();
       this.world.sky.applyQuality(this.settings.quality);
+      this.world.water.setGrid(this.settings.quality.waterGrid);
+      this.world.streetLights.setCount(this.settings.quality.streetLights);
     });
     // Still slow at the lowest resolution: take the next lighter preset.
     this.engine.onStruggle = () => {
@@ -189,6 +194,7 @@ export class Game {
     progress(0.9, 'Warming up');
     // Ray and shape queries see the colliders only after a step.
     this.physics.step();
+    this.audio = new GameAudio(this);
     this.engine.start({
       fixed: (dt) => this.fixedUpdate(dt),
       frame: (dt, alpha) => this.frameUpdate(dt, alpha),
@@ -255,8 +261,9 @@ export class Game {
    * Play a one-shot sound, at a point in the world when `position` is given. Names are the audio
    * engine's `SoundName`s; unknown names are ignored.
    */
-  sound(_name: string, _position?: { x: number; y: number; z: number }, _volume = 1): void {
-    // Wired to the audio engine in T-12.
+  sound(name: string, position?: { x: number; y: number; z: number }, volume = 1): void {
+    // Before the audio exists (while the game loads) there is nobody to hear it.
+    this.audio?.play(name, position, volume);
   }
 
   addSystem<T extends GameSystem>(system: T): T {
@@ -363,6 +370,8 @@ export class Game {
     this.fx.daylight = 1 - this.world.sky.night;
     const ground = this.world.field.heightAt(camera.position.x, camera.position.z);
     this.world.update(this.engine.time, camera, this.viewTarget, Math.max(0, camera.position.y - ground));
+    // The listener goes where the camera has just been put, in the menu as much as in a round.
+    this.audio?.frame(dt);
     this.input.endFrame();
   }
 }

@@ -1,4 +1,4 @@
-import { hash2 } from '../core/rng';
+import { hash2, Rng } from '../core/rng';
 import { burst, click, thump } from './blocks';
 import type { Dsp, Mono, Rendered } from './dsp';
 import type { BufferSource } from './loops';
@@ -195,10 +195,30 @@ export class Music {
     this.update();
   }
 
+  /**
+   * Plays the jukebox tune that goes with a title, looping until `stop()` or another track. The same
+   * title is always the same song.
+   */
+  playTune(title: string, fade = 0.4): void {
+    const now = this.ctx.currentTime;
+    this.current = 'none';
+    for (const deck of this.decks) if (!deck.fading) this.fadeOut(deck, now, Math.max(0.02, fade));
+    this.decks.push(this.makeDeck('none', jukeboxTune(title), now, 0.05));
+    this.update();
+  }
+
+  /** Fades out whatever is playing, tune or track. */
+  stop(fade = 1.5): void {
+    const now = this.ctx.currentTime;
+    this.current = 'none';
+    for (const deck of this.decks) if (!deck.fading) this.fadeOut(deck, now, Math.max(0.02, fade));
+  }
+
   /** Commits notes up to the look-ahead horizon and retires finished decks. Call every frame. */
   update(): void {
     const now = this.ctx.currentTime;
     if (!this.reverb.buffer && this.bank.has('ir_hall')) this.reverb.buffer = this.bank.get('ir_hall')[0]!;
+    let retired = false;
     for (const deck of this.decks) {
       if (!deck.finished) {
         const sting = deck.def.steps !== undefined;
@@ -223,9 +243,11 @@ export class Music {
       if (deck.endTime > 0 && now > deck.endTime) {
         for (const f of deck.faders) f.disconnect();
         deck.endTime = -1;
+        retired = true;
       }
     }
-    if (this.decks.some((d) => d.endTime < 0)) this.decks = this.decks.filter((d) => d.endTime >= 0);
+    // Only when a deck has just gone: this runs every frame and must not make garbage.
+    if (retired) this.decks = this.decks.filter((d) => d.endTime >= 0);
   }
 
   dispose(): void {
@@ -765,6 +787,201 @@ function sting(events: readonly StingEvent[], bpm: number, steps: number, tail: 
       }
     },
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Jukebox
+// ---------------------------------------------------------------------------------------------------------------------
+
+const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+const MINOR = [0, 2, 3, 5, 7, 8, 10];
+/** Four-bar chord loops, as scale degrees counted from the tonic. */
+const LOOPS_MINOR = [
+  [0, 5, 2, 6],
+  [0, 3, 6, 2],
+  [0, 6, 5, 4],
+  [0, 2, 5, 6],
+];
+const LOOPS_MAJOR = [
+  [0, 4, 5, 3],
+  [0, 5, 3, 4],
+  [1, 4, 0, 5],
+  [0, 3, 1, 4],
+];
+/** Rhythms a bar of melody can take: step and length, in sixteenths. */
+const PHRASES: readonly (readonly (readonly [number, number])[])[] = [
+  [
+    [0, 3],
+    [3, 3],
+    [6, 2],
+    [8, 6],
+  ],
+  [
+    [0, 6],
+    [6, 2],
+    [8, 3],
+    [11, 5],
+  ],
+  [
+    [2, 2],
+    [4, 2],
+    [6, 2],
+    [8, 3],
+    [11, 3],
+    [14, 2],
+  ],
+  [[0, 10]],
+  [
+    [0, 4],
+    [4, 4],
+    [8, 3],
+    [11, 5],
+  ],
+  [
+    [0, 3],
+    [3, 3],
+    [6, 2],
+    [8, 3],
+    [11, 3],
+    [14, 2],
+  ],
+  [
+    [0, 2],
+    [3, 2],
+    [6, 2],
+    [8, 8],
+  ],
+];
+/** Piano-style off-beat figure for the mambo: step and which chord note. */
+const MONTUNO: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [2, 2],
+  [3, 1],
+  [5, 2],
+  [7, 3],
+  [8, 1],
+  [10, 2],
+  [11, 0],
+  [13, 2],
+  [15, 3],
+];
+const CONGA_STEPS = [2, 6, 7, 10, 14, 15];
+/** Syncopated bass for the funk: step, semitones above the root, length in steps. */
+const FUNK_BASS: readonly (readonly [number, number, number])[] = [
+  [0, 0, 2.4],
+  [3, 0, 1],
+  [6, 12, 1],
+  [7, 10, 1.4],
+  [10, 0, 1.6],
+  [12, 7, 1],
+  [14, 12, 1.4],
+];
+
+const TUNES = new Map<string, TrackDef>();
+
+/**
+ * The song that goes with a jukebox title. Tempo, key, chords, groove and melody are all drawn from the
+ * title, so each title is its own tune and the same on every run and every machine. Three grooves: a
+ * synth-pop cruise, a mambo and a four-on-the-floor funk.
+ */
+function jukeboxTune(title: string): TrackDef {
+  const known = TUNES.get(title);
+  if (known) return known;
+  let seed = 2166136261;
+  for (let i = 0; i < title.length; i++) seed = Math.imul(seed ^ title.charCodeAt(i), 16777619);
+  const rng = new Rng(seed);
+  const style = rng.int(0, 2);
+  const minor = style === 1 ? rng.chance(0.8) : rng.chance(0.5);
+  const scale = minor ? MINOR : MAJOR;
+  const key = 55 + rng.int(0, 7);
+  const loop = rng.pick(minor ? LOOPS_MINOR : LOOPS_MAJOR);
+  const bpm = style === 0 ? rng.int(104, 116) : style === 1 ? rng.int(96, 106) : rng.int(112, 122);
+  const arp = rng.chance(0.5) ? ARP_A : ARP_B;
+  /** The note `k` scale steps above the tonic. */
+  const degree = (k: number): number => key + scale[((k % 7) + 7) % 7]! + 12 * Math.floor(k / 7);
+  const chords: Chord[] = loop.map((d) => {
+    // Root, third, fifth and seventh, kept around the middle of the keyboard.
+    const drop = degree(d) > 63 ? 12 : 0;
+    const pad = [0, 2, 4, 6].map((k) => degree(d + k) - drop);
+    return { root: 40 + ((pad[0]! - 40) % 12), pad };
+  });
+  // The melody: eight bars that walk the scale, coming to rest on a chord note at the start of each bar.
+  const melody: (readonly [number, number, number])[][] = [];
+  let at = 2 + rng.int(0, 3);
+  for (let bar = 0; bar < 8; bar++) {
+    const d = loop[bar % 4]!;
+    const phrase = bar === 7 ? PHRASES[3]! : rng.pick(PHRASES);
+    const notes: (readonly [number, number, number])[] = [];
+    phrase.forEach(([step, len], i) => {
+      if (i === 0) {
+        // The nearest root, third or fifth of this bar's chord.
+        let best = at;
+        let gap = 99;
+        for (let octave = -1; octave < 3; octave++) {
+          for (const third of [0, 2, 4]) {
+            const k = d + third + 7 * octave;
+            if (Math.abs(k - at) < gap) {
+              gap = Math.abs(k - at);
+              best = k;
+            }
+          }
+        }
+        at = best;
+      } else at += rng.pick([-2, -1, -1, 1, 1, 2]);
+      at = Math.max(0, Math.min(7, at));
+      notes.push([step, degree(at), len]);
+    });
+    melody.push(notes);
+  }
+  const def: TrackDef = {
+    bpm,
+    gain: 0.8,
+    delaySteps: 3,
+    schedule(m, deck, step, t) {
+      const sd = deck.stepDur;
+      const s = step % 16;
+      const bar = Math.floor(step / 16);
+      const chord = chords[bar % 4]!;
+      // Two bars to count in, then the band; the tune rests for four bars out of every sixteen.
+      const full = bar >= 2;
+      const tune = full && (bar - 2) % 16 < 12;
+      if (s === 0) m.pad(deck, t, chord.pad, sd * 16, 0.8, full ? 1100 : 800);
+      if (tune) for (const [note, midi, len] of melody[(bar - 2) % 8]!) if (note === s) m.lead(deck, t, midi + 12, sd * len * 0.9, 0.8);
+
+      if (style === 0) {
+        const idx = arp[s]!;
+        if (idx >= 0) m.pluck(deck, t, chord.pad[idx % 4]! + 12 + (idx >= 4 ? 12 : 0), sd * 1.3, TRESILLO.includes(s) ? 0.85 : 0.5, s % 2 === 0 ? -0.3 : 0.3);
+        if (full && s % 2 === 0) m.bass(deck, t, chord.root + (s % 4 === 2 ? 12 : 0), sd * 1.5, s % 8 === 0 ? 0.7 : 0.55);
+        if (s % 2 === 0) m.drum(deck, t, 'drum_hat', s % 4 === 2 ? 0.18 : 0.11, 1, 0.2, s === 14 ? 1 : 0);
+        if (full) {
+          if (s === 0 || s === 8 || (s === 10 && bar % 2 === 1)) m.drum(deck, t, 'drum_kick', s === 10 ? 0.35 : 0.6);
+          if (s === 4 || s === 12) m.drum(deck, t, 'drum_snare', 0.42);
+        }
+      } else if (style === 1) {
+        for (const [note, k] of MONTUNO) if (note === s) m.pluck(deck, t, chord.pad[k]! + 12, sd * 1.2, k === 0 ? 0.85 : 0.6, k % 2 === 0 ? -0.25 : 0.25, 1.2);
+        if (s in BASS_STEPS) m.bass(deck, t, chord.root + BASS_STEPS[s]!, sd * (s === 6 || s === 14 ? 1.6 : 2.4), s % 8 === 0 ? 0.7 : 0.56);
+        m.drum(deck, t, 'drum_shaker', [0.22, 0.09, 0.15, 0.1][s % 4]!, 1, 0.3);
+        if (CLAVE.includes(s)) m.drum(deck, t, 'drum_rim', 0.26, 1, -0.3);
+        if (full) {
+          if (s === 0 || s === 8) m.drum(deck, t, 'drum_kick', 0.5);
+          if (CONGA_STEPS.includes(s)) m.drum(deck, t, 'drum_conga', s === 6 || s === 14 ? 0.34 : 0.22, 1, -0.2, s === 7 || s === 15 ? 1 : 0);
+        }
+      } else {
+        for (const [note, up, len] of FUNK_BASS) if (note === s && (full || note === 0)) m.bass(deck, t, chord.root + up, sd * len, note === 0 ? 0.75 : 0.58);
+        if (s === 4 || s === 7 || s === 12 || s === 15) for (const [i, n] of chord.pad.entries()) m.pluck(deck, t, n + 12, sd * 0.9, 0.5, (i - 1.5) * 0.3, 1.3);
+        if (s % 4 === 2) m.drum(deck, t, 'drum_hat', 0.2, 1, 0.2, 1);
+        else if (s % 2 === 1) m.drum(deck, t, 'drum_hat', 0.07, 1, 0.2);
+        if (full) {
+          if (s % 4 === 0) m.drum(deck, t, 'drum_kick', 0.6);
+          if (s === 4 || s === 12) m.drum(deck, t, 'drum_snare', 0.4);
+        }
+      }
+      // A cymbal where the band comes in.
+      if (s === 0 && bar === 2) m.drum(deck, t, 'drum_cymbal', 0.22);
+    },
+  };
+  TUNES.set(title, def);
+  return def;
 }
 
 const TRACKS: Record<Exclude<MusicTrack, 'none'>, TrackDef> = {

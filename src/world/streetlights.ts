@@ -3,7 +3,7 @@ import { smoothstep } from '../core/math';
 
 /**
  * A small pool of real point lights that follows the player from lamp to lamp at night.
- * The light count never changes after start-up, so shaders are compiled once.
+ * The light count only changes with the quality preset, so shaders are compiled once per preset.
  */
 export class StreetLights {
   private lights: PointLight[] = [];
@@ -11,18 +11,28 @@ export class StreetLights {
   private timer = 0;
 
   constructor(
-    scene: Scene,
+    private scene: Scene,
     private lamps: Vector3[],
     count: number,
   ) {
-    for (let i = 0; i < count; i++) {
+    this.setCount(count);
+  }
+
+  /** How many lights there are to go round (the quality preset changed). */
+  setCount(count: number): void {
+    while (this.lights.length > count) {
+      this.lights.pop()!.removeFromParent();
+      this.slot.pop();
+    }
+    while (this.lights.length < count) {
       const l = new PointLight(0xffd9a0, 0, 26, 1.7);
       l.castShadow = false;
       l.position.set(0, -50, 0);
-      scene.add(l);
+      this.scene.add(l);
       this.lights.push(l);
       this.slot.push(-1);
     }
+    this.timer = 0;
   }
 
   update(dt: number, focus: Vector3, night: number): void {

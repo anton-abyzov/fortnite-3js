@@ -6,13 +6,10 @@ import type { Game } from '../game';
 import { ITEMS, type ItemId, WEAPON_IDS } from '../gameplay/items';
 import { CONSUMABLES, TIERS, WEAPONS } from '../gameplay/weapons';
 import { describe } from '../world/loot';
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = cls;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+import { Aftermath } from './aftermath';
+import { el } from './dom';
+import { Minimap } from './minimap';
+import { RoundHud } from './roundHud';
 
 const hex = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -28,6 +25,9 @@ const POUCH: { id: ItemId; key: string; short: string }[] = [
 /**
  * What the player sees over the world while playing: crosshair, hit marker, health and armor, the
  * weapon in hand and the ones carried, supplies, cash, and short notes about what was picked up.
+ * The round's own parts live beside it: the map (minimap.ts), the compass, the count of who is
+ * left, the kill feed and the storm's clock (roundHud.ts), and what follows the player's last
+ * moment in a round (aftermath.ts).
  */
 export class Hud implements GameSystem {
   readonly root = el('div', 'hud');
@@ -52,7 +52,12 @@ export class Hud implements GameSystem {
   private readonly slots: HTMLElement[] = [];
   private readonly pouch: { node: HTMLElement; count: HTMLElement; id: ItemId }[] = [];
   private readonly toasts = el('div', 'toasts');
+  private readonly map: Minimap;
+  private readonly round: RoundHud;
+  private readonly after: Aftermath;
   private shown = '';
+  /** The player is out of the round: their own gauges are put away. */
+  private down = false;
   private markTimer = 0;
   private hurtTimer = 0;
   private hurtFrom = 0;
@@ -98,7 +103,14 @@ export class Hud implements GameSystem {
     arms.append(this.weaponName, this.ammo, rack);
 
     this.reload.append(this.reloadFill, this.reloadText);
-    this.root.append(this.vignette, this.scope, this.hurtRing, this.cross, this.marker, this.reload, vitals, arms, this.toasts);
+    this.map = new Minimap(game, parent);
+    this.round = new RoundHud(game);
+    this.after = new Aftermath(game, parent);
+    const top = el('div', 'hud-top');
+    top.append(this.round.compass, this.round.storm, this.round.warn);
+    const corner = el('div', 'hud-corner');
+    corner.append(this.map.root, this.round.tally);
+    this.root.append(this.round.tint, this.vignette, this.scope, this.hurtRing, this.cross, this.marker, this.reload, top, corner, this.round.feed, vitals, arms, this.toasts, this.after.label, this.map.full);
     // Under the title and pause cards, which come later in the page.
     parent.prepend(this.root);
 
@@ -155,10 +167,24 @@ export class Hud implements GameSystem {
     apply(value);
   }
 
+  /** Fixed step: the keys that change who is watched after the player is out. */
+  fixedUpdate(): void {
+    this.after.fixedUpdate();
+  }
+
   frameUpdate(dt: number): void {
     const g = this.game;
     const c = g.player;
     if (!c) return;
+    // Once the player is out, the view, the map and the compass follow whoever they are watching.
+    this.after.update(dt);
+    const watched = this.after.target;
+    this.round.update(c, g.camera.yaw);
+    this.map.update(dt, watched ?? c, watched ? c : null, g.camera.yaw);
+    if (c.alive === this.down) {
+      this.down = !c.alive;
+      this.root.classList.toggle('dead', this.down);
+    }
     const lo = c.loadout;
     const def = lo.weapon;
     const held = lo.heldNow;
@@ -270,6 +296,10 @@ export class Hud implements GameSystem {
       bar: this.shown,
       toasts: [...this.toasts.children].map((t) => t.textContent),
       player: c?.name ?? null,
+      ...this.round.snapshot(),
+      ...this.after.snapshot(),
+      map: { ...this.map.shown },
+      fullMap: this.map.open ? { ...this.map.fullShown } : null,
     };
   }
 }

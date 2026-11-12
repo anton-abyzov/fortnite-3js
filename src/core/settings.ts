@@ -99,7 +99,8 @@ export interface SettingsData {
   showFps: boolean;
 }
 
-const DEFAULTS: SettingsData = {
+/** What a fresh install starts with, and what "Reset" goes back to. */
+export const DEFAULTS: Readonly<SettingsData> = {
   quality: 'high',
   masterVolume: 0.8,
   sfxVolume: 0.9,
@@ -109,6 +110,24 @@ const DEFAULTS: SettingsData = {
   fov: 62,
   showFps: false,
 };
+
+/** Presets from the lightest to the heaviest, in the order a menu lists them. */
+export const QUALITY_NAMES: readonly QualityName[] = ['low', 'medium', 'high', 'ultra'];
+
+/** Slider ends. Values from storage are held to them too, so a hand-edited entry cannot break the game. */
+export const LIMITS = {
+  masterVolume: [0, 1],
+  sfxVolume: [0, 1],
+  musicVolume: [0, 1],
+  sensitivity: [0.2, 3],
+  fov: [50, 100],
+} as const satisfies Partial<Record<keyof SettingsData, readonly [number, number]>>;
+
+function within(key: keyof SettingsData, value: number): number {
+  const limit = (LIMITS as Partial<Record<keyof SettingsData, readonly [number, number]>>)[key];
+  if (!limit) return value;
+  return Number.isFinite(value) ? Math.min(limit[1], Math.max(limit[0], value)) : (DEFAULTS[key] as number);
+}
 
 const KEY = 'eyewall.settings.v1';
 
@@ -123,7 +142,8 @@ export class Settings {
       if (raw) {
         const saved = JSON.parse(raw) as Partial<SettingsData>;
         for (const k of Object.keys(DEFAULTS) as (keyof SettingsData)[]) {
-          if (typeof saved[k] === typeof DEFAULTS[k]) (this.data as unknown as Record<string, unknown>)[k] = saved[k];
+          const v = saved[k];
+          if (typeof v === typeof DEFAULTS[k]) (this.data as unknown as Record<string, unknown>)[k] = typeof v === 'number' ? within(k, v) : v;
         }
         if (!(this.data.quality in QUALITY)) this.data.quality = DEFAULTS.quality;
       }
@@ -137,6 +157,7 @@ export class Settings {
   }
 
   set<K extends keyof SettingsData>(key: K, value: SettingsData[K]): void {
+    if (typeof value === 'number') value = within(key, value) as SettingsData[K];
     if (this.data[key] === value) return;
     this.data[key] = value;
     try {
@@ -145,6 +166,11 @@ export class Settings {
       // Ignore: settings then last for the session only.
     }
     for (const l of this.listeners) l(this.data, key);
+  }
+
+  /** Back to the defaults. Listeners hear about each value that changed. */
+  reset(): void {
+    for (const k of Object.keys(DEFAULTS) as (keyof SettingsData)[]) this.set(k, DEFAULTS[k]);
   }
 
   onChange(listener: (data: SettingsData, changed: keyof SettingsData) => void): () => void {

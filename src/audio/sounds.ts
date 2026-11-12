@@ -13,6 +13,7 @@ export type SoundName =
   | 'equip'
   | 'shell'
   | 'bullet_whiz'
+  | 'explosion'
   | 'impact_concrete'
   | 'impact_metal'
   | 'impact_wood'
@@ -729,6 +730,23 @@ function crash(d: Dsp): Rendered {
   return d.norm(out, 0.95);
 }
 
+/** A frag going off: a hard crack, a deep thump, a roar that darkens as it dies, then dirt coming back down. */
+function explosion(d: Dsp): Rendered {
+  const out = d.stereo(2.4);
+  d.mixS(out, burst(d, 'hp', 1400, 0.7, 0.012, 0.0003), 0.9);
+  d.mixS(out, burst(d, 'lp', 2400, 0.7, 0.05, 0.0005), 1.2);
+  d.mixS(out, thump(d, 120, 30, 0.07, 0.3, 0.001), 1.3);
+  for (const ch of out) {
+    const roar = d.lp(d.brown(2.2), (t) => 140 + 2600 * Math.exp(-t / 0.22));
+    d.mix(ch, d.env(roar, (t) => Math.min(1, t / 0.004) * Math.exp(-t / 0.45)), 4, 0.004);
+  }
+  const dirt = crackle(d, d.decay(d.bp(d.white(1.2), 1800, 0.8), 0.35, 0.05), 40);
+  d.mixS(out, d.norm(dirt, 1), 0.3, 0.18, -0.3);
+  d.mixS(out, shards(d, 1.1, 18, 1800, 7000, 0.3), 0.16, 0.3, 0.4);
+  for (const ch of out) d.drive(ch, 1.6);
+  return d.norm(out, 0.95);
+}
+
 function glassBreak(d: Dsp, _v: number): Rendered {
   const out = d.stereo(1.2);
   d.mixS(out, burst(d, 'hp', 2500, 0.7, 0.004));
@@ -1133,6 +1151,7 @@ export const SOUNDS: Record<SoundName, SoundDef> = {
   equip: def(equip, 0.4, [2, 14], { jitter: 0.04 }),
   shell: def(shell, 0.28, [1.5, 14], { variants: 3, jitter: 0.08, priority: 0.4 }),
   bullet_whiz: def(bulletWhiz, 0.7, [3, 30], { variants: 3, jitter: 0.1, priority: 1.5 }),
+  explosion: def(explosion, 1, [14, 260], { priority: 3, jitter: 0.05 }),
 
   impact_concrete: def(impactConcrete, 0.55, [3, 45], IMPACT),
   impact_metal: def(impactMetal, 0.5, [3, 50], IMPACT),

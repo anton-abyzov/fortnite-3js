@@ -460,6 +460,625 @@
   }
 }
 
+/* Out of the round: the player's own gauges step aside for whoever they are watching. */
+.vitals,
+.arms {
+  transition: opacity 0.4s ease;
+}
+
+.hud.dead .vitals,
+.hud.dead .arms {
+  opacity: 0;
+}
+
+/* Top centre: the compass, the storm's clock and its warning. */
+.hud-top {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A strip of bearings that slides under a fixed needle. roundHud.ts lays the marks out 3px to a degree. */
+.compass {
+  position: relative;
+  width: 372px;
+  height: 46px;
+  overflow: hidden;
+  /* A dark band behind the marks, so they read against a bright sky. */
+  background: linear-gradient(180deg, rgba(11, 29, 42, 0.46) 0, rgba(11, 29, 42, 0.46) 25px, transparent 25px);
+  border-radius: 6px 6px 0 0;
+  mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%);
+}
+
+.compass-tape {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 26px;
+  will-change: transform;
+}
+
+.compass-mark {
+  position: absolute;
+  top: 0;
+  padding-top: 10px;
+  transform: translateX(-50%);
+  font: 600 9px/1 var(--mono);
+  color: rgba(244, 251, 250, 0.62);
+  text-shadow: 0 1px 4px rgba(11, 29, 42, 0.9);
+}
+
+.compass-mark::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 6px;
+  margin-left: -0.5px;
+  background: rgba(244, 251, 250, 0.6);
+  box-shadow: 0 0 0 1px rgba(11, 29, 42, 0.35);
+}
+
+.compass-mark.half {
+  font: 700 10px/1 var(--display);
+  letter-spacing: 0.06em;
+  color: rgba(244, 251, 250, 0.86);
+}
+
+.compass-mark.cardinal {
+  padding-top: 11px;
+  font: 800 14px/1 var(--display);
+  color: var(--foam);
+}
+
+.compass-mark.cardinal::before {
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  background: var(--foam);
+}
+
+.compass-mark.north {
+  color: var(--sun);
+}
+
+.compass-mark.north::before {
+  background: var(--sun);
+}
+
+.compass-needle {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top: 7px solid var(--coral);
+  border-bottom: 0;
+  filter: drop-shadow(0 1px 2px rgba(11, 29, 42, 0.8));
+}
+
+.compass-read {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  font: 700 11px/1.1 var(--mono);
+}
+
+.compass-point {
+  min-width: 1.5em;
+  font-family: var(--display);
+  letter-spacing: 0.08em;
+  text-align: right;
+  color: var(--sun);
+}
+
+.compass-deg::after {
+  content: '\00b0';
+}
+
+.storm {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 13px 5px 10px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(6px);
+}
+
+.storm.show {
+  display: flex;
+}
+
+.storm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 3px rgba(53, 224, 200, 0.22);
+}
+
+.storm-phase {
+  font: 700 10px/1 var(--display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.62);
+}
+
+.storm-text {
+  font: 700 13px/1.1 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+.storm.closing {
+  border-color: rgba(255, 122, 89, 0.7);
+}
+
+.storm.closing .storm-dot,
+.storm.shut .storm-dot {
+  background: var(--coral);
+  box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.25);
+  animation: storm-blink 0.9s ease-in-out infinite;
+}
+
+.storm.closing .storm-text {
+  color: #ffc2b0;
+}
+
+.storm-warn {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 16px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  background: rgba(40, 30, 10, 0.66);
+  backdrop-filter: blur(6px);
+}
+
+.storm-warn.show {
+  display: flex;
+}
+
+.storm-warn-title {
+  font: 800 11px/1 var(--display);
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+
+.storm-warn-text {
+  font: 600 12px/1.2 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+.storm-warn.out {
+  border-color: rgba(255, 77, 94, 0.75);
+  background: rgba(62, 10, 22, 0.72);
+  animation: storm-pulse 1s ease-in-out infinite;
+}
+
+.storm-warn.out .storm-warn-title {
+  font-size: 14px;
+  color: #ff97a1;
+}
+
+@keyframes storm-pulse {
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      0 0 0 5px rgba(255, 77, 94, 0.2),
+      0 0 28px rgba(255, 77, 94, 0.55);
+  }
+}
+
+@keyframes storm-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* In the wall: grey air and rain across the glass. */
+.storm-tint {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(120, 146, 160, 0.14) 25%, rgba(34, 46, 70, 0.66) 100%);
+}
+
+.storm-tint.show::after {
+  content: '';
+  position: absolute;
+  left: -20%;
+  top: -30%;
+  width: 140%;
+  height: 160%;
+  background: repeating-linear-gradient(104deg, transparent 0 21px, rgba(226, 238, 246, 0.16) 21px 22px, transparent 22px 53px);
+  /* The streaks are cut into dashes along their own length, and slide one dash a beat. */
+  mask-image: repeating-linear-gradient(14deg, #000 0 54px, transparent 54px 150px);
+  animation: storm-rain 0.42s linear infinite;
+}
+
+@keyframes storm-rain {
+  to {
+    transform: translate3d(-36.3px, 145.5px, 0);
+  }
+}
+
+/* Top right: the map, and under it who is left. minimap.ts draws 208 pixels a side. */
+.hud-corner {
+  position: absolute;
+  right: 28px;
+  top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.minimap {
+  position: relative;
+  width: 208px;
+  height: 208px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0e2f43;
+  border: 1px solid rgba(244, 251, 250, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.minimap-canvas,
+.fullmap-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.minimap-north,
+.fullmap-north {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
+  font: 800 10px/1 var(--display);
+  color: var(--sun);
+  text-shadow:
+    0 0 3px #06101a,
+    0 0 3px #06101a;
+}
+
+.minimap-key {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 10px/1 var(--body);
+  text-shadow:
+    0 0 3px #06101a,
+    0 0 3px #06101a;
+}
+
+.tally {
+  display: none;
+  gap: 6px;
+}
+
+.tally.show {
+  display: flex;
+}
+
+.tally-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px 5px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(6px);
+}
+
+.tally-item b {
+  font: 700 17px/1 var(--mono);
+}
+
+.tally-kills {
+  color: var(--sun);
+}
+
+.tally-label {
+  font: 700 9px/1 var(--display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.7);
+}
+
+/* Top left: who got whom. */
+.feed {
+  position: absolute;
+  left: 28px;
+  top: 22px;
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 400px;
+}
+
+.feed.show {
+  display: flex;
+}
+
+.feed-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-left: 3px solid rgba(244, 251, 250, 0.32);
+  font: 600 12px/1.2 var(--body);
+  white-space: nowrap;
+  animation: feed-in 0.2s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.feed-line.mine {
+  border-color: rgba(255, 209, 102, 0.5);
+  border-left-color: var(--sun);
+  background: rgba(54, 40, 8, 0.74);
+}
+
+.feed-line.out {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+.feed-killer {
+  font-weight: 700;
+}
+
+.feed-killer.nature {
+  color: var(--lilac);
+}
+
+.feed-how {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(244, 251, 250, 0.12);
+  font: 700 9px/1 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.8);
+}
+
+.feed-victim {
+  color: rgba(244, 251, 250, 0.8);
+}
+
+/* Headshot: a ring with a dot in it. */
+.feed-head {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--sun);
+  border-radius: 50%;
+}
+
+.feed-head::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--sun);
+}
+
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
+
+/* After the player's last moment: who the view is on now. */
+.spectate {
+  position: absolute;
+  left: 50%;
+  bottom: 10%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 24px 11px;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(8px);
+}
+
+.spectate.show {
+  display: flex;
+}
+
+.spectate-kicker {
+  font: 700 10px/1 var(--display);
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+
+.spectate.watching .spectate-kicker {
+  color: var(--teal);
+}
+
+.spectate-name {
+  font: 800 22px/1.1 var(--display);
+  letter-spacing: 0.06em;
+}
+
+.spectate-keys {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 600 11px/1 var(--body);
+  color: rgba(244, 251, 250, 0.76);
+}
+
+.spectate-keys {
+  gap: 12px;
+}
+
+.spectate-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Nobody to switch between until the view has moved on. */
+.spectate:not(.watching) .spectate-switch {
+  display: none;
+}
+
+/* The whole bay, on M. */
+.fullmap {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 16, 26, 0.42);
+}
+
+.fullmap.show {
+  display: flex;
+}
+
+.fullmap-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background: rgba(11, 29, 42, 0.88);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.fullmap-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fullmap-title {
+  margin: 0 auto 0 0;
+  font: 800 17px/1 var(--display);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.fullmap-legend {
+  display: flex;
+  gap: 14px;
+  font: 600 11px/1 var(--body);
+  color: rgba(244, 251, 250, 0.8);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-mark {
+  width: 16px;
+  height: 0;
+  border-top: 3px solid var(--teal);
+}
+
+.legend-mark.next {
+  border-top: 3px dashed var(--sun);
+}
+
+.legend-mark.you {
+  width: 0;
+  border: 5px solid transparent;
+  border-top: 0;
+  border-bottom: 10px solid var(--foam);
+}
+
+.fullmap-close {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 11px/1 var(--body);
+  color: rgba(244, 251, 250, 0.8);
+}
+
+.fullmap-chart {
+  position: relative;
+  width: min(76vh, 76vw, 820px);
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0e2f43;
+  border: 1px solid rgba(244, 251, 250, 0.2);
+}
+
+.map-label {
+  position: absolute;
+  /* One word to a line, so neighbours do not run into each other. */
+  width: min-content;
+  transform: translate(-50%, -50%);
+  font: 800 11px/1.12 var(--display);
+  letter-spacing: 0.13em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--foam);
+  text-shadow:
+    0 0 3px #06101a,
+    0 0 3px #06101a,
+    0 0 6px #06101a;
+}
+
+.map-label.minor {
+  /* Small places are named above their spot, clear of the district names. */
+  transform: translate(-50%, calc(-100% - 7px));
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(244, 251, 250, 0.86);
+}
+
 @media (max-width: 900px) {
   .slot {
     width: 62px;
@@ -467,5 +1086,34 @@
 
   .vitals {
     width: 220px;
+  }
+
+  .minimap {
+    width: 150px;
+    height: 150px;
+  }
+
+  .hud-top {
+    top: 8px;
+    transform: translateX(-50%) scale(0.82);
+    transform-origin: top center;
+  }
+
+  .feed {
+    top: 64px;
+    max-width: 46vw;
+  }
+
+  .fullmap-legend {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storm-warn.out,
+  .storm-tint.show::after,
+  .storm.closing .storm-dot,
+  .storm.shut .storm-dot {
+    animation: none;
   }
 }
