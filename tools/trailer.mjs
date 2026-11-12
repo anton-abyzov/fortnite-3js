@@ -118,7 +118,7 @@ const SCENES = [
       await page.evaluate(() => {
         const api = window.__eyewall;
         const game = api.game;
-        api.skydive(676, 330, 150);
+        api.skydive(654, 330, 150);
         game.camera.yaw = Math.PI / 2;
         game.camera.pitch = -0.5;
         game.camera.snap();
