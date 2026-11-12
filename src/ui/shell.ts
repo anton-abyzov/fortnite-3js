@@ -256,10 +256,14 @@ export class Shell {
       this.altValue.textContent = String(Math.max(0, Math.round(g.drop.altitude(g.player))));
       this.altLabel.textContent = stage === 'aboard' ? 'm, aboard the seaplane' : stage === 'falling' ? 'm, freefall' : 'm, under canopy';
     }
-    const text = g.phase === 'match' ? (g.controller?.prompt ?? '') : '';
+    let text = g.phase === 'match' ? (g.controller?.prompt ?? '') : '';
+    // Under way, the reminder of how to get out is only in the way. It is there while the car or boat
+    // stands or crawls, which is when anyone gets out.
+    const ride = g.player?.vehicle;
+    if (ride && Math.abs(ride.speed) > 2.5) text = '';
     if (text !== this.shownPrompt) {
       this.shownPrompt = text;
-      this.promptText.textContent = text;
+      if (text !== '') this.promptText.textContent = text;
       this.prompt.classList.toggle('show', text !== '');
     }
     this.sync();
