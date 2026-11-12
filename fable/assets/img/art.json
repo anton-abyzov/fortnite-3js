@@ -1,0 +1,129 @@
+{
+  "title": "title.webp",
+  "billboards": [
+    {
+      "file": "billboards/cascabel-cola.webp",
+      "name": "Cascabel Cola",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/marazul-air.webp",
+      "name": "Marazul Air",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/sol-987.webp",
+      "name": "Sol 98.7 FM",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/pelican-surf.webp",
+      "name": "Pelican Surf Co.",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/hotel-flamingo.webp",
+      "name": "Hotel Flamingo Heights",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/tidewater-cold-brew.webp",
+      "name": "Tidewater Cold Brew",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/garza-marina.webp",
+      "name": "Garza Marina",
+      "width": 1024,
+      "height": 512
+    },
+    {
+      "file": "billboards/storm-watch.webp",
+      "name": "Eyewall Storm Watch",
+      "width": 1024,
+      "height": 512
+    }
+  ],
+  "murals": [
+    {
+      "file": "murals/flamingos.webp",
+      "name": "Flamingos",
+      "width": 1152,
+      "height": 768
+    },
+    {
+      "file": "murals/big-wave.webp",
+      "name": "Big Wave",
+      "width": 1152,
+      "height": 768
+    },
+    {
+      "file": "murals/pelican.webp",
+      "name": "Pelican",
+      "width": 1152,
+      "height": 768
+    },
+    {
+      "file": "murals/fruit.webp",
+      "name": "Tropical Fruit",
+      "width": 1152,
+      "height": 768
+    },
+    {
+      "file": "murals/eye.webp",
+      "name": "The Eye",
+      "width": 1152,
+      "height": 768
+    },
+    {
+      "file": "murals/manatee.webp",
+      "name": "Manatee",
+      "width": 1152,
+      "height": 768
+    }
+  ],
+  "posters": [
+    {
+      "file": "posters/mango-smoothie.webp",
+      "name": "Mango Smoothie",
+      "width": 512,
+      "height": 768
+    },
+    {
+      "file": "posters/sunscreen.webp",
+      "name": "Sol-Block SPF 50",
+      "width": 512,
+      "height": 768
+    },
+    {
+      "file": "posters/arcade-night.webp",
+      "name": "Arcade Night",
+      "width": 512,
+      "height": 768
+    },
+    {
+      "file": "posters/fresh-ceviche.webp",
+      "name": "Fresh Ceviche",
+      "width": 512,
+      "height": 768
+    },
+    {
+      "file": "posters/board-rental.webp",
+      "name": "Board Rental",
+      "width": 512,
+      "height": 768
+    },
+    {
+      "file": "posters/ammo-sale.webp",
+      "name": "Range Day Sale",
+      "width": 512,
+      "height": 768
+    }
+  ]
+}
