@@ -1,13 +1,15 @@
 {
   "id": "0001-miami-battle-royale-fable",
   "uuid": "7e83ba02-60fb-48ac-af2f-bc4b85278045",
-  "status": "active",
+  "status": "completed",
   "type": "feature",
   "priority": "P1",
   "created": "2026-11-11T18:21:56.588Z",
-  "updated": "2026-11-12T04:39:00.424Z",
-  "lastActivity": "2026-11-12T04:39:00.424Z",
+  "updated": "2026-11-12T04:57:10.930Z",
+  "lastActivity": "2026-11-12T04:57:10.930Z",
   "title": "Original Miami-inspired battle royale browser game (Fable build)",
   "project": "fortnite-3js",
-  "externalLinks": {}
+  "externalLinks": {},
+  "readyForReviewAt": "2026-11-12T04:57:10.930Z",
+  "approvedAt": "2026-11-12T04:57:10.930Z"
 }
