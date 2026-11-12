@@ -7,6 +7,7 @@ import type { WorldField } from './field';
 import { Frame } from './frame';
 import { MeshBuilder } from './geo';
 import { type Block, type Layout, type Lot, type Rect, rectCx, rectCz } from './layout';
+import { planShop, shopColliders, shopfrontDressing, SHOPFRONT, type ShopPlan, type ShopSite } from './shopPlan';
 
 const GROUND = WORLD.streetY + WORLD.kerb;
 const GROUND_H = 4.3;
@@ -56,6 +57,8 @@ export interface CityBuild {
   roofSpots: RoofSpot[];
   /** Blank walls and rooftops reserved for billboards and murals. */
   artSlots: ArtSlot[];
+  /** Shops with a real room behind the shopfront, for the shop module to furnish. */
+  shops: ShopSite[];
 }
 
 export interface ArtSlot {
@@ -98,7 +101,7 @@ function newBuilders(): Builders {
 }
 
 export function buildBuildings(layout: Layout, field: WorldField, materials: Materials, physics: Physics): CityBuild {
-  const out: CityBuild = { group: new Group(), buildings: [], roofSpots: [], artSlots: [] };
+  const out: CityBuild = { group: new Group(), buildings: [], roofSpots: [], artSlots: [], shops: [] };
   out.group.name = 'buildings';
   const byBlock = new Map<number, Lot[]>();
   for (const lot of layout.lots) {
@@ -211,6 +214,8 @@ interface MassOpts {
   /** Skip the collider when another mass already covers it. */
   noCollider?: boolean;
   roof?: boolean;
+  /** A shop with a room inside: the glazed part of the front stays open and the room is left hollow. */
+  shop?: ShopPlan;
 }
 
 /** A rectangular mass with windowed walls, parapet, roof and collider. Returns the roof height. */
@@ -229,7 +234,14 @@ function mass(c: Ctx, o: MassOpts): number {
 
   if (o.ground) {
     setWin(fa, 'store', c.seed);
-    f.wallFront(fa, o.u0, o.u1, o.y0, yUpper, o.w0, c.body, [0, 0, Math.max(1, Math.round(W / 4.2)), 1]);
+    const s = o.shop;
+    if (s) {
+      // Painted windows on either side of the real shopfront, and plain wall above its glass.
+      if (s.bay0 > 0) f.wallFront(fa, o.u0, s.g0, o.y0, yUpper, o.w0, c.body, [0, 0, s.bay0, 1]);
+      if (s.bay1 < s.bays) f.wallFront(fa, s.g1, o.u1, o.y0, yUpper, o.w0, c.body, [s.bay1, 0, s.bays, 1]);
+      fa.clearStyle();
+      f.wallFront(fa, s.g0, s.g1, o.y0 + SHOPFRONT.glassTop, yUpper, o.w0, c.body, [0, 0, 1, 0.2]);
+    } else f.wallFront(fa, o.u0, o.u1, o.y0, yUpper, o.w0, c.body, [0, 0, Math.max(1, Math.round(W / 4.2)), 1]);
     fa.clearStyle();
     f.wallLeft(fa, o.u0, o.w0, o.w1, o.y0, yUpper, o.color, [0, 0, baysS, 1]);
     f.wallRight(fa, o.u1, o.w0, o.w1, o.y0, yUpper, o.color, [0, 0, baysS, 1]);
@@ -267,7 +279,8 @@ function mass(c: Ctx, o: MassOpts): number {
     f.wallLeft(b.paint, o.u1 - t, o.w0 + t, o.w1 - t, top, top + parapet, o.color);
   }
   if (o.roof !== false) f.floor(b.roof, o.u0, o.u1, o.w0, o.w1, top + 0.01, ROOF_TINT);
-  if (!o.noCollider) {
+  if (o.shop) shopColliders(c.physics, f, o.shop, top);
+  else if (!o.noCollider) {
     const r = f.worldRect(o.u0, o.u1, o.w0, o.w1);
     c.physics.addStaticBox((r.x0 + r.x1) / 2, (o.y0 + top) / 2, (r.z0 + r.z1) / 2, (r.x1 - r.x0) / 2, (top - o.y0) / 2, (r.z1 - r.z0) / 2, { kind: 'world', surface: 'concrete' });
   }
@@ -288,9 +301,14 @@ function speedLines(c: Ctx, u0: number, u1: number, w: number, y: number, color:
 }
 
 /** Shopfront dressing along a ground floor: plinth, awnings, a door and a fascia band. */
-function storefront(c: Ctx, u0: number, u1: number, w: number, y0: number): void {
+function storefront(c: Ctx, u0: number, u1: number, w: number, y0: number, shop?: ShopPlan): void {
   const { f, b, r } = c;
-  f.box(b.paint, u0, u1, y0, y0 + 0.5, w - 0.06, w, c.accent, 'flrt');
+  // A shop's glazed span gets its own plinth, canopy and real door; the dressing here stays clear of it.
+  const clear = (a: number, e: number): boolean => !shop || e <= shop.g0 || a >= shop.g1;
+  if (shop) {
+    if (shop.g0 - u0 > 0.05) f.box(b.paint, u0, shop.g0, y0, y0 + 0.5, w - 0.06, w, c.accent, 'flrt');
+    if (u1 - shop.g1 > 0.05) f.box(b.paint, shop.g1, u1, y0, y0 + 0.5, w - 0.06, w, c.accent, 'flrt');
+  } else f.box(b.paint, u0, u1, y0, y0 + 0.5, w - 0.06, w, c.accent, 'flrt');
   f.box(b.paint, u0, u1, y0 + GROUND_H - 0.75, y0 + GROUND_H - 0.1, w - 0.1, w, TRIM, 'flrtb');
   // Awnings over groups of bays.
   const n = Math.max(1, Math.round((u1 - u0) / 6));
@@ -300,6 +318,7 @@ function storefront(c: Ctx, u0: number, u1: number, w: number, y0: number): void
     if (r.chance(0.25)) continue;
     const a = u0 + i * span + 0.5;
     const e = a + span - 1;
+    if (!clear(a, e)) continue;
     const yTop = y0 + 3.45;
     const yLow = y0 + 2.85;
     const depth = 1.35;
@@ -316,6 +335,7 @@ function storefront(c: Ctx, u0: number, u1: number, w: number, y0: number): void
   }
   // Door.
   const du = u0 + (u1 - u0) * r.pick([0.2, 0.5, 0.8]);
+  if (shop) return;
   f.box(b.paint, du - 0.85, du + 0.85, y0, y0 + 2.5, w - 0.09, w, DARK, 'flrt');
   f.box(b.gloss, du - 0.7, du + 0.7, y0 + 0.1, y0 + 2.35, w - 0.12, w - 0.08, new Color(0.25, 0.42, 0.48), 'f');
 }
@@ -441,16 +461,24 @@ function deco(c: Ctx): number {
   const { f, r, lot } = c;
   const floors = Math.max(1, lot.floors);
   const frontWin = r.pick<WinName>(['rect', 'rect', 'wide', 'porthole', 'slit']);
-  const top = mass(c, { u0: 0, u1: f.W, w0: 0, w1: f.D, y0: GROUND, floors, ground: true, front: frontWin, sides: lot.cornerSide ? frontWin : r.chance(0.4) ? 'small' : null, back: 'small', color: c.body });
-  storefront(c, 0.3, f.W - 0.3, 0, GROUND);
+  // A shop gets a real room: a glazed shopfront with a doorway, and walls around a hollow inside.
+  const shop = lot.use === 'shop' && lot.shop ? planShop(lot, f.W, f.D) : undefined;
+  const top = mass(c, { u0: 0, u1: f.W, w0: 0, w1: f.D, y0: GROUND, floors, ground: true, front: frontWin, sides: lot.cornerSide ? frontWin : r.chance(0.4) ? 'small' : null, back: 'small', color: c.body, shop });
+  storefront(c, 0.3, f.W - 0.3, 0, GROUND, shop);
+  if (shop) {
+    shopfrontDressing(f, shop, c.b.paint, c.b.neon, { accent: c.accent, neon: c.neon, trim: TRIM, dark: DARK });
+    c.out.shops.push({ lot, plan: shop, frame: f, top, body: c.body, accent: c.accent, neon: c.neon });
+  }
   if (floors > 1) {
     eyebrows(c, 0.4, f.W - 0.4, 0, GROUND + GROUND_H, floors - 1);
     speedLines(c, 0.2, f.W - 0.2, 0, top - 0.2, c.accent);
   }
   const mid = f.W / 2;
   if (r.chance(0.6) && f.W > 12) crown(c, mid, 0, top + PARAPET, Math.min(8, f.W * 0.45), r.int(2, 3));
-  if (r.chance(0.55) && floors >= 2) fin(c, r.chance(0.5) ? mid : f.W * r.pick([0.22, 0.78]), 0, GROUND + GROUND_H - 0.4, top + PARAPET + r.range(1.5, 4), 1.5, lot.name || r.pick(['CAFE', 'BAR', 'DELI', 'MODA', 'CINE', 'CLUB', 'SALSA', 'HELADO']));
-  if (lot.name && lot.use === 'shop') nameSign(c, lot.name, mid, -0.12, GROUND + GROUND_H - 0.72, f.W * 0.6, 0.58, r.pick(['block', 'script']));
+  // Over a shop the fin starts above the fascia, so it never covers the name over the door.
+  if (r.chance(0.55) && floors >= 2) fin(c, r.chance(0.5) ? mid : f.W * r.pick([0.22, 0.78]), 0, GROUND + GROUND_H - (shop ? -0.05 : 0.4), top + PARAPET + r.range(1.5, 4), 1.5, lot.name || r.pick(['CAFE', 'BAR', 'DELI', 'MODA', 'CINE', 'CLUB', 'SALSA', 'HELADO']));
+  // The name goes over the shop's own door when it has one.
+  if (lot.name && lot.use === 'shop') nameSign(c, lot.name, shop ? shop.doorU : mid, -0.12, GROUND + GROUND_H - 0.72, shop ? shop.g1 - shop.g0 - 1 : f.W * 0.6, 0.58, r.pick(['block', 'script']));
   cornerDrum(c, top);
   roofClutter(c, 0, f.W, 0, f.D, top);
   if (lot.cornerSide === undefined && f.D > 12 && r.chance(0.3)) mural(c, top);
