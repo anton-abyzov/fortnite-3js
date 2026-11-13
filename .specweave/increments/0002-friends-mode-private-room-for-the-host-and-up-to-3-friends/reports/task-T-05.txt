@@ -1,0 +1,13 @@
+$ flock /tmp/eyewall-gpu.lock npx playwright test friends -g "hit"
+# exit 0 — 2026-11-13T01:12:46.797Z
+
+
+Running 1 test using 1 worker
+
+gap while running, m: 0.40 0.40 0.41 0.40 0.40 0.40
+gap after stopping: 0.01 m
+guest hit host: 100 -> 70.3
+host downed guest from 100
+  ✓  1 tests/e2e/friends.spec.ts:143:3 › friends mode › move: friends see each other move, shoot, hit and the same winner (13.0s)
+
+  1 passed (14.3s)

@@ -1,0 +1,9 @@
+$ flock /tmp/eyewall-gpu.lock npx playwright test friends -g "rejoin"
+# exit 0 — 2026-11-13T01:13:47.938Z
+
+
+Running 1 test using 1 worker
+
+  ✓  1 tests/e2e/friends.spec.ts:308:3 › friends mode › rejoin: away, back with the same health, out after the grace, room closes with the host (45.6s)
+
+  1 passed (46.8s)

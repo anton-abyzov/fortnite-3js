@@ -1,0 +1,16 @@
+$ flock /tmp/eyewall-gpu.lock npx playwright test friends -g "move"
+# exit 0 — 2026-11-13T01:12:31.905Z
+
+
+Running 2 tests using 1 worker
+
+gap while running, m: 0.40 0.41 0.41 0.40 0.40 0.40
+gap after stopping: 0.00 m
+guest hit host: 100 -> 70.3
+host downed guest from 100
+  ✓  1 tests/e2e/friends.spec.ts:143:3 › friends mode › move: friends see each other move, shoot, hit and the same winner (13.3s)
+car moved 42.8 m; gap while driving 0.67 0.75 0.83 0.88 0.98; gap stopped 0.21 m
+guest at the car is offered: Ride in Marlin GT
+  ✓  2 tests/e2e/friends.spec.ts:223:3 › friends mode › car: the driver’s car moves on the other screen and its seat is taken (11.5s)
+
+  2 passed (26.0s)

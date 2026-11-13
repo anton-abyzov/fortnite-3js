@@ -1,0 +1,130 @@
+{
+  "ok": false,
+  "ranAt": "2026-11-13T02:06:08.737Z",
+  "increment": "0002-friends-mode-private-room-for-the-host-and-up-to-3-friends",
+  "commands": [
+    {
+      "cmd": "npm run build",
+      "exit": 0
+    },
+    {
+      "cmd": "npm run lint",
+      "exit": 0
+    },
+    {
+      "cmd": "npx playwright test art audio boot bots car combat drop",
+      "exit": 0
+    },
+    {
+      "cmd": "npx playwright test friends locomotion match perf playthrough shops water world",
+      "exit": 0
+    }
+  ],
+  "acs": {
+    "total": 6,
+    "done": 5,
+    "skippedAccepted": 0,
+    "mixed": 0,
+    "items": [
+      {
+        "id": "AC-01",
+        "done": true,
+        "via": "ledger",
+        "tasks": [
+          {
+            "id": "T-01",
+            "status": "done"
+          },
+          {
+            "id": "T-02",
+            "status": "done"
+          }
+        ],
+        "acceptance": "met",
+        "waivers": []
+      },
+      {
+        "id": "AC-02",
+        "done": true,
+        "via": "ledger",
+        "tasks": [
+          {
+            "id": "T-04",
+            "status": "done"
+          }
+        ],
+        "acceptance": "met",
+        "waivers": []
+      },
+      {
+        "id": "AC-03",
+        "done": true,
+        "via": "ledger",
+        "tasks": [
+          {
+            "id": "T-05",
+            "status": "done"
+          }
+        ],
+        "acceptance": "met",
+        "waivers": []
+      },
+      {
+        "id": "AC-04",
+        "done": true,
+        "via": "ledger",
+        "tasks": [
+          {
+            "id": "T-06",
+            "status": "done"
+          }
+        ],
+        "acceptance": "met",
+        "waivers": []
+      },
+      {
+        "id": "AC-05",
+        "done": true,
+        "via": "ledger",
+        "tasks": [
+          {
+            "id": "T-07",
+            "status": "done"
+          }
+        ],
+        "acceptance": "met",
+        "waivers": []
+      },
+      {
+        "id": "AC-06",
+        "done": false,
+        "via": "none",
+        "tasks": [
+          {
+            "id": "T-03",
+            "status": "done"
+          },
+          {
+            "id": "T-08",
+            "status": "done"
+          },
+          {
+            "id": "T-09",
+            "status": "open"
+          }
+        ],
+        "acceptance": "open",
+        "waivers": []
+      }
+    ]
+  },
+  "tasks": {
+    "total": 9,
+    "done": 8,
+    "skipped": 0,
+    "open": 1
+  },
+  "skipped": [],
+  "acceptedSkips": [],
+  "ledgerMalformed": 0
+}

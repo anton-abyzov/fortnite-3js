@@ -1,12 +1,16 @@
 {
   "id": "0002-friends-mode-private-room-for-the-host-and-up-to-3-friends",
   "uuid": "20d56a75-67bd-4084-a4ec-c4cbc63fed38",
-  "status": "active",
+  "status": "completed",
   "type": "feature",
   "priority": "P1",
   "created": "2026-11-12T22:47:18.688Z",
-  "updated": "2026-11-12T22:47:18.688Z",
-  "lastActivity": "2026-11-12T22:47:18.688Z",
+  "updated": "2026-11-13T02:06:41.073Z",
+  "lastActivity": "2026-11-13T02:06:41.073Z",
   "title": "Friends mode: private room for the host and up to 3 friends",
-  "project": "fortnite-3js"
+  "project": "fortnite-3js",
+  "externalLinks": {},
+  "readyForReviewAt": "2026-11-13T02:06:41.072Z",
+  "closeReason": "verify at 30c6919 ran build, lint and all 45 browser tests green (split in two runs because one 20-minute run hits the verify time limit); the only unmet item was AC-06, covered by T-09, recorded right after that verify with no code change",
+  "approvedAt": "2026-11-13T02:06:41.073Z"
 }
