@@ -134,8 +134,13 @@ export function attachSignaling(httpServer, { path = '/signal', log = () => {} }
   }, 10_000);
 
   const onUpgrade = (req, socket, head) => {
-    const url = new URL(req.url ?? '/', 'http://x');
-    if (url.pathname !== path) return;
+    let pathname;
+    try {
+      pathname = new URL(req.url ?? '/', 'http://x').pathname;
+    } catch {
+      return;
+    }
+    if (pathname !== path) return;
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   };
   httpServer.on('upgrade', onUpgrade);

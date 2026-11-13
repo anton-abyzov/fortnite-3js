@@ -36,7 +36,7 @@ The code is in `src/net/` (`session.ts` is the room, `transport.ts` the links, `
 
 ## Not in a friends round yet
 
-Bots, the storm and the seaplane drop. Loot is not shared: each browser lays out the same containers but opening one does not open it for others. Vehicle damage, grenade explosions on other screens and lane traffic (held still in friends rounds) are not synced. There is no anti-cheat: the host trusts friends within the limits above.
+Bots, the storm and the seaplane drop. Loot is not shared: each browser lays out the same containers but opening one does not open it for others, so two players can take the same item. Vehicle damage, grenade explosions on other screens and lane traffic (held still in friends rounds) are not synced, and vehicles are matched by their place in the city's list, so a car moved or wrecked in an earlier solo round can sit somewhere else in another browser. There is no anti-cheat: the host trusts friends within the limits above.
 
 ## Playing over the internet: what is needed
 

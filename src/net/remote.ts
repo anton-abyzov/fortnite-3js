@@ -53,6 +53,8 @@ export class RemoteBody {
   push(msg: StateMsg): void {
     const t = now();
     const est = t - msg.t;
+    // The sender's clock went back (their page was reloaded): start over from this message.
+    if (this.offset !== null && est - this.offset > 1.5) this.reset();
     if (this.offset === null || est < this.offset) this.offset = est;
     else this.offset += (est - this.offset) * 0.02;
     const at = msg.t + this.offset;

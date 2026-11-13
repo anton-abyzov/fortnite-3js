@@ -136,6 +136,21 @@ test.describe('friends mode', () => {
 
     const r = (await room(host.page))!;
     console.log('transports at the host:', r.transports.join(', '));
+
+    // A guest who played a round and closed the room leaves nothing behind for single player.
+    await host.page.click('.friends-start');
+    await expect.poll(async () => (await room(guests[0]!.page))?.running, { timeout: 30_000 }).toBe(true);
+    await host.page.keyboard.press('Escape');
+    await host.page.click('.pause-back');
+    await expect(guests[0]!.page.locator('.friends-error')).toContainText('closed', { timeout: 15_000 });
+    const leftovers = await guests[0]!.page.evaluate(() =>
+      window.__eyewall!.game.characters.filter((c) => c.remote).map((c) => ({ alive: c.alive, visible: c.rig.root.visible, state: c.state })),
+    );
+    expect(leftovers.length).toBeGreaterThan(0);
+    for (const c of leftovers) expect(c).toEqual({ alive: false, visible: false, state: 'plane' });
+    await guests[0]!.page.evaluate(() => window.__eyewall!.startAt(-60, 13, 0));
+    expect((await match(guests[0]!.page)).running).toBe(false);
+    expect(await guests[0]!.page.evaluate(() => window.__eyewall!.game.hurtGate === null && window.__eyewall!.game.roundHooks === null)).toBe(true);
     for (const f of [host, ...guests, fifth]) expectNoErrors(f.watch);
     await close(host, ...guests, fifth);
   });

@@ -233,6 +233,8 @@ export class FriendsSession implements GameSystem {
     g.hurtGate = (target, amount, info) => this.gate(target, amount, info);
     g.roundHooks = {
       again: () => {
+        // The others are still fighting: the next round starts when this one is over.
+        if (this.running) return;
         if (this.role === 'host') this.startRound();
         else {
           // The host starts the next one; until then, the room panel.
@@ -283,18 +285,24 @@ export class FriendsSession implements GameSystem {
   private admit(peer: number, name: string, token: string): void {
     // Back from a lost connection: the same place in the round.
     for (const m of this.members.values()) {
-      if (m.token === token && m.slot !== 0) {
+      if (m.token === token && m.slot !== 0 && m.away) {
         if (m.peer >= 0) this.links.get(m.peer)?.close();
         this.links.delete(m.peer);
         m.peer = peer;
         m.away = false;
         m.name = name || m.name;
         const link = this.addLink(peer, true);
+        // Their page started again, and with it their clock.
+        this.body(m.slot).reset();
         this.sendRoster();
         if (this.running && m.inRound && this.info) {
           const c = this.chars.get(m.slot);
-          const dead = [...this.chars.entries()].filter(([s, ch]) => !ch.alive && s !== m.slot).map(([s]) => s);
-          if (c) link.sendEvent({ k: 'resume', info: this.info, at: [q(c.position.x), q(c.position.y), q(c.position.z), q(c.facing)], hp: c.health, ar: c.armor, alive: c.alive, dead });
+          // Only those still in the room: whoever left is not brought back.
+          const spawns: RoundInfo['spawns'] = {};
+          for (const [slot, at] of Object.entries(this.info.spawns)) if (this.members.has(Number(slot))) spawns[Number(slot)] = at;
+          const info = { ...this.info, spawns };
+          const dead = [...this.chars.entries()].filter(([s, ch]) => !ch.alive && s !== m.slot && this.members.has(s)).map(([s]) => s);
+          if (c) link.sendEvent({ k: 'resume', info, at: [q(c.position.x), q(c.position.y), q(c.position.z), q(c.facing)], hp: c.health, ar: c.armor, alive: c.alive, dead });
         }
         this.onChange();
         return;
@@ -346,11 +354,22 @@ export class FriendsSession implements GameSystem {
   private retire(slot: number): void {
     const c = this.chars.get(slot);
     if (!c || c === this.game.player) return;
-    c.vehicle?.exit(c);
     this.game.match.withdraw(c);
-    c.rig.root.visible = false;
-    c.motor.collider.setEnabled(false);
+    this.park(c);
     this.bodies.get(slot)?.reset();
+  }
+
+  /**
+   * Out of play and out of sight, like a bot between rounds: nothing aims at it, picks things up
+   * with it, brakes for it or runs it over. `beginRound` brings it back.
+   */
+  private park(c: Character): void {
+    this.seatOut(c);
+    c.alive = false;
+    c.state = 'plane';
+    c.rig.root.visible = false;
+    c.motor.setEnabled(false);
+    c.motor.velocity.set(0, 0, 0);
   }
 
   private memberByPeer(peer: number): Member | undefined {
@@ -553,11 +572,29 @@ export class FriendsSession implements GameSystem {
   /** Someone got out of a vehicle in another browser; a body they drove comes back to this one. */
   private seatOut(c: Character): void {
     const v = c.vehicle;
-    if (!v) return;
+    if (!v) {
+      this.releaseVehicles();
+      return;
+    }
     const drove = v.driver === c;
     const vel = drove ? this.body(this.slotOf(c)).vehicleVelocity() : null;
     v.exit(c);
     if (drove) v.setRemoteDriven(false, vel?.lin, vel?.ang);
+  }
+
+  /**
+   * A body the network drives goes back to this browser's physics once nobody from another
+   * browser drives it: the driver got out, died, left, or the car was wrecked under them.
+   */
+  private releaseVehicles(): void {
+    const g = this.game;
+    for (const v of g.vehicles) {
+      if (!v.remoteDriven) continue;
+      const d = v.driver;
+      if (d && d !== g.player && d.remote && d.alive) continue;
+      const vel = d ? this.body(this.slotOf(d)).vehicleVelocity() : null;
+      v.setRemoteDriven(false, vel?.lin, vel?.ang);
+    }
   }
 
   private drawShot(msg: Extract<EventMsg, { k: 'shot' }>): void {
@@ -670,7 +707,7 @@ export class FriendsSession implements GameSystem {
         this.chars.set(slot, c);
       } else {
         c = this.charFor(slot, x, z, yaw);
-        c.vehicle?.exit(c);
+        this.seatOut(c);
         const y = g.physics.groundHeight(x, 200, z, 400, g.world.field.heightAt(x, z)) + 0.05;
         c.teleport(x, y, z, yaw);
         c.state = 'normal';
@@ -762,6 +799,7 @@ export class FriendsSession implements GameSystem {
       const c = this.chars.get(slot);
       if (c && c !== g.player && c.rig.root.visible) body.apply(c, g.vehicles);
     }
+    this.releaseVehicles();
     // Ours, 20 times a second.
     this.stateClock += dt;
     if (this.running && this.stateClock >= 1 / STATE_HZ) {
@@ -844,12 +882,7 @@ export class FriendsSession implements GameSystem {
     if (g.traffic) g.traffic.paused = false;
     if (this.savedHurtScale) g.hurtScale = this.savedHurtScale;
     for (const v of g.vehicles) if (v.remoteDriven) v.setRemoteDriven(false);
-    for (const c of this.chars.values()) {
-      if (c === g.player) continue;
-      c.vehicle?.exit(c);
-      c.rig.root.visible = false;
-      c.motor.collider.setEnabled(false);
-    }
+    for (const c of this.chars.values()) if (c !== g.player) this.park(c);
     this.running = false;
     if (g.phase === 'match' || g.phase === 'ended') {
       g.input.setWantLock(false);

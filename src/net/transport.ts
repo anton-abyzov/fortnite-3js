@@ -129,8 +129,10 @@ export class Link {
     const text = JSON.stringify({ ...msg, q: ++this.sendSeq });
     this.stats.sent++;
     this.stats.bytesOut += text.length;
+    // Events are few and must arrive: they go both ways, and the sequence number drops the twin.
+    // A data channel can still look open for a while after the connection under it has died.
     if (this.events?.readyState === 'open') this.events.send(text);
-    else this.signal.send({ t: 'relay', to: this.peer, data: text });
+    this.signal.send({ t: 'relay', to: this.peer, data: text });
   }
 
   /** Newest wins; may be lost. */
