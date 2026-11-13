@@ -68,7 +68,9 @@ The work is tracked as a SpecWeave increment in `.specweave/increments/0001-miam
 
 ## Multiplayer
 
-The game is solo against bots today. [docs/multiplayer-evaluation.md](docs/multiplayer-evaluation.md) weighs whether and how to add online play, with architecture, netcode options and hosting costs. The short answer: yes, as the second release, with a server that runs the same simulation.
+**Friends mode:** choose Play with friends on the title screen, create a room and send the invite link. Up to 4 players, the host's browser runs the round, no game server. See [docs/friends-mode.md](docs/friends-mode.md).
+
+The full game against 23 bots is solo. [docs/multiplayer-evaluation.md](docs/multiplayer-evaluation.md) weighs whether and how to add online play, with architecture, netcode options and hosting costs. The short answer: yes, as the second release, with a server that runs the same simulation.
 
 ## How it was made
 
