@@ -2,6 +2,7 @@ import './ui/styles.css';
 import { installDebug } from './core/debug';
 import { Game } from './game';
 import { Hud } from './ui/hud';
+import { FriendsPanel } from './ui/friends';
 import { Shell } from './ui/shell';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -27,6 +28,7 @@ game
     boot.classList.add('hidden');
     const ui = document.getElementById('ui')!;
     new Shell(game, ui);
+    new FriendsPanel(game, ui);
     const hud = game.addSystem(new Hud(game, ui));
     game.debugExt['hud'] = () => hud.snapshot();
     // Development shortcut: ?at=x,z,yaw starts on foot at a map position.

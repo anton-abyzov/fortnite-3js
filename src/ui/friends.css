@@ -1,0 +1,209 @@
+.friends {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 16, 24, 0.55);
+  backdrop-filter: blur(6px);
+}
+#ui > .friends.show {
+  display: flex;
+  pointer-events: auto;
+}
+.friends-card {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 26px 28px 22px;
+  border: 1px solid var(--glass-line);
+  border-radius: 14px;
+  background: var(--glass);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+}
+.friends-kicker {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+.friends-title {
+  margin: 4px 0 18px;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.friends-door,
+.friends-room {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.friends-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 251, 250, 0.7);
+}
+.friends-input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: 8px;
+  background: rgba(244, 251, 250, 0.08);
+  color: var(--foam);
+  font: 16px var(--body);
+}
+.friends-input:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+.friends-code {
+  flex: 1;
+  font-family: var(--mono);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.friends-link {
+  flex: 1;
+  font: 13px var(--mono);
+}
+.friends-row {
+  display: flex;
+  gap: 8px;
+}
+.friends button {
+  cursor: pointer;
+}
+.friends-create,
+.friends-join,
+.friends-copy,
+.friends-leave,
+.friends-close {
+  padding: 10px 16px;
+  border: 1px solid var(--glass-line);
+  border-radius: 8px;
+  background: rgba(244, 251, 250, 0.1);
+  color: var(--foam);
+  font: 600 15px var(--display);
+  letter-spacing: 0.04em;
+}
+.friends-create {
+  background: linear-gradient(90deg, var(--teal), var(--aqua));
+  border-color: transparent;
+  color: var(--ink);
+}
+.friends-create:hover,
+.friends-join:hover,
+.friends-copy:hover,
+.friends-leave:hover,
+.friends-close:hover {
+  filter: brightness(1.12);
+}
+.friends-create:disabled,
+.friends-join:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.friends-or {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(244, 251, 250, 0.6);
+}
+.friends-roomcode {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.friends-code-big {
+  font-family: var(--mono);
+  font-size: 34px;
+  letter-spacing: 0.24em;
+  color: var(--teal);
+}
+.friends-players {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.friends-player {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(244, 251, 250, 0.08);
+}
+.friends-player.empty {
+  color: rgba(244, 251, 250, 0.35);
+  background: transparent;
+  border: 1px dashed var(--glass-line);
+}
+.friends-player-name {
+  font-weight: 600;
+}
+.friends-player-tag {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+.friends-status {
+  margin: 0;
+  color: var(--teal);
+}
+.friends-error {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 600;
+}
+.friends-note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(244, 251, 250, 0.55);
+}
+.friends-start {
+  margin-top: 4px;
+}
+.friends-open-button {
+  align-self: flex-start;
+  min-width: 220px;
+  padding: 12px 26px;
+  border: 1px solid var(--teal);
+  border-radius: 12px;
+  background: rgba(11, 29, 42, 0.55);
+  color: var(--foam);
+  font: 700 17px var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.friends-open-button:hover {
+  background: rgba(53, 224, 200, 0.18);
+}
+.friends-tag {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  font: 600 12px var(--display);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+.friends-tag.show {
+  display: block;
+}
