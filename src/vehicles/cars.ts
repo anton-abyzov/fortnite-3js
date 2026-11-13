@@ -386,6 +386,7 @@ export async function installCars(game: Game): Promise<void> {
   const cars = new Cars(game, buildCarKits(asset));
   cars.parkAll();
   cars.traffic = new Traffic(game, cars);
+  game.traffic = cars.traffic;
   game.addSystem(cars);
   game.addSystem(cars.traffic);
 

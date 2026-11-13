@@ -5,7 +5,7 @@ import type { GameSystem } from '../core/system';
 import type { Game } from '../game';
 import type { CameraSubject } from '../gameplay/camera';
 import type { Interactable } from '../gameplay/interactions';
-import type { RAPIER } from '../physics/physics';
+import { RAPIER } from '../physics/physics';
 
 export type VehicleKind = 'car' | 'boat' | 'jetski';
 
@@ -72,6 +72,12 @@ export abstract class Vehicle implements GameSystem {
   yaw = 0;
   readonly cameraSubject: CameraSubject;
   interaction!: Interactable;
+  /**
+   * Someone in another browser drives this (a friends room): the body is kinematic and follows
+   * `remoteTarget`, which the network sets, instead of being simulated here.
+   */
+  remoteDriven = false;
+  readonly remoteTarget = { x: 0, y: 0, z: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
   private readonly prevPos = new Vector3();
   private readonly currPos = new Vector3();
   private readonly prevQuat = new Quaternion();
@@ -142,6 +148,7 @@ export abstract class Vehicle implements GameSystem {
     c.sitIn(this, seat, s.def.clip);
     this.placeOccupant(s);
     this.onEnter(c, seat);
+    this.game.events.emit('seat', { who: c, vehicle: this, seat });
     return true;
   }
 
@@ -161,6 +168,7 @@ export abstract class Vehicle implements GameSystem {
       this.controls.boost = false;
     }
     this.onExit(c);
+    this.game.events.emit('seat', { who: c, vehicle: this, seat: -1 });
   }
 
   /** A free spot to stand on next to a seat: the seat's own side first, then the others, then the roof. */
@@ -223,7 +231,33 @@ export abstract class Vehicle implements GameSystem {
   /** Extra per-frame visuals (wheels, wake). `root` is already placed. */
   protected animate(_dt: number): void {}
 
+  /**
+   * Hand the body to the network (`on`) or take it back. Taking it back keeps going at `velocity`,
+   * the last speed the other browser reported.
+   */
+  setRemoteDriven(on: boolean, velocity?: { x: number; y: number; z: number }, spin?: { x: number; y: number; z: number }): void {
+    if (this.remoteDriven === on) return;
+    this.remoteDriven = on;
+    const b = this.body;
+    if (on) {
+      const t = b.translation();
+      const r = b.rotation();
+      Object.assign(this.remoteTarget, { x: t.x, y: t.y, z: t.z, qx: r.x, qy: r.y, qz: r.z, qw: r.w });
+      b.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+    } else {
+      b.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+      if (velocity) b.setLinvel(velocity, true);
+      if (spin) b.setAngvel(spin, true);
+    }
+  }
+
   fixedUpdate(dt: number): void {
+    if (this.remoteDriven) {
+      const r = this.remoteTarget;
+      this.body.setNextKinematicTranslation({ x: r.x, y: r.y, z: r.z });
+      this.body.setNextKinematicRotation({ x: r.qx, y: r.qy, z: r.qz, w: r.qw });
+      return;
+    }
     if (!this.driver) {
       this.controls.throttle = 0;
       this.controls.steer = 0;

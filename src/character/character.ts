@@ -73,6 +73,11 @@ export class Character {
   /** Seconds since someone else last hurt them. */
   sinceHurtBy = 99;
   events: CharacterEvents = {};
+  /**
+   * Another browser simulates this body (a friend in a friends room): the motor does not run here,
+   * and the network places the body each fixed step.
+   */
+  remote = false;
   /** Pose the skeleton every this many frames: 1 for anyone near the camera, more for far or unseen bodies. */
   poseEvery = 1;
   private poseWait = 0;
@@ -199,6 +204,7 @@ export class Character {
   fixedUpdate(dt: number, env: CharacterEnv): void {
     this.sinceHurt += dt;
     this.sinceHurtBy += dt;
+    if (this.remote) return;
     const m = this.motor;
     if (this.state === 'freefall' || this.state === 'chute') {
       // Flying: the motor glides by the numbers the drop gave it, and the body turns with the view.

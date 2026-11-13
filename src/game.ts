@@ -51,8 +51,10 @@ export interface GameEvents extends Record<string, unknown> {
   grant: { to: Character; item: ItemId; count: number };
   /** A character came down from the drop, onto something solid or into water. */
   landed: { who: Character; water: boolean };
-  /** A weapon was fired, from this point. */
-  shot: { by: Character; weapon: WeaponId; x: number; y: number; z: number };
+  /** A weapon was fired, from this point. `end` is where the first pellet stopped and `hit` what it found. */
+  shot: { by: Character; weapon: WeaponId; x: number; y: number; z: number; end?: Vector3; hit?: string };
+  /** Someone got into a vehicle seat (`seat` >= 0) or out of one (`seat` is -1). */
+  seat: { who: Character; vehicle: Vehicle; seat: number };
   /** Something exploded. */
   blast: { x: number; y: number; z: number; by: Character | null };
   /** A character finished using a bandage, a medkit, a drink or a vest. */
@@ -106,6 +108,8 @@ export class Game {
   readonly characters: Character[] = [];
   /** Everything usable with the interact key. */
   readonly interactions = new Interactions();
+  /** Lane traffic, when the cars are loaded. A friends round holds it still, as each browser runs its own. */
+  traffic: { paused: boolean } | null = null;
   /** Every drivable thing in the world. Vehicles add themselves. */
   readonly vehicles: Vehicle[] = [];
   /** Things that run in the loop. See `addSystem`. */
@@ -240,8 +244,15 @@ export class Game {
   /** A say in how hard a hit lands (the bots go easier on each other than on the player). */
   hurtScale: ((target: Character, info: DamageInfo) => number) | null = null;
 
+  /**
+   * In a friends room, decides where damage is worked out: return false and it is not applied here
+   * (a guest sends it to the host instead). Unset in single player.
+   */
+  hurtGate: ((target: Character, amount: number, info: DamageInfo) => boolean) | null = null;
+
   hurt(target: Character, amount: number, info: DamageInfo): number {
     if (!target.alive || amount <= 0) return 0;
+    if (this.hurtGate && !this.hurtGate(target, amount, info)) return 0;
     if (this.hurtScale) amount *= this.hurtScale(target, info);
     let left = amount;
     if (info.cause !== 'storm' && info.cause !== 'drown' && info.cause !== 'fall') {
@@ -249,7 +260,21 @@ export class Game {
       target.armor -= soaked;
       left -= soaked;
     }
-    target.health = Math.max(0, target.health - left);
+    return this.settleHurt(target, amount, Math.max(0, target.health - left), target.armor, info);
+  }
+
+  /**
+   * Damage already worked out somewhere else (the host of a friends room): set health and armor to
+   * what they became, and tell everyone as `hurt` does.
+   */
+  applyHurt(target: Character, amount: number, health: number, armor: number, info: DamageInfo): number {
+    if (!target.alive) return 0;
+    return this.settleHurt(target, amount, health, armor, info);
+  }
+
+  private settleHurt(target: Character, amount: number, health: number, armor: number, info: DamageInfo): number {
+    target.armor = armor;
+    target.health = health;
     target.sinceHurt = 0;
     if (info.by && info.by !== target) {
       target.lastHurtBy = info.by;
@@ -333,6 +358,27 @@ export class Game {
   /** Start a round aboard the seaplane. */
   startMatch(): void {
     this.match.start();
+  }
+
+  /**
+   * What "Play again" and "Title" on the result card and the pause card do. A friends room replaces
+   * them while it is open.
+   */
+  roundHooks: { again(): void; title(): void } | null = null;
+
+  playAgain(): void {
+    if (this.roundHooks) this.roundHooks.again();
+    else this.startMatch();
+  }
+
+  toTitle(): void {
+    if (this.roundHooks) {
+      this.roundHooks.title();
+      return;
+    }
+    this.input.setWantLock(false);
+    this.match.stop();
+    this.setPhase('menu');
   }
 
   /** Put the player on the ground at a point and hand over control, skipping the drop. */

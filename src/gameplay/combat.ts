@@ -91,6 +91,9 @@ export class Combat implements GameSystem {
   lastHit = 'none';
   lastDamage = 0;
   lastHeadshot = false;
+  /** Where the first pellet of the last shot stopped. */
+  private readonly firstEnd = new Vector3();
+  private firstHit = 'none';
 
   private constructor(
     private readonly game: Game,
@@ -366,6 +369,10 @@ export class Combat implements GameSystem {
         .addScaledVector(_up, Math.sin(a) * r)
         .normalize();
       this.trace(c, def, tier.damage, _eye, _shot, _from);
+      if (i === 0) {
+        this.firstEnd.copy(_end);
+        this.firstHit = this.lastHit;
+      }
     }
 
     game.fx.burst('muzzle', _from.x, _from.y, _from.z, { dx: _dir.x, dy: _dir.y, dz: _dir.z });
@@ -387,8 +394,34 @@ export class Combat implements GameSystem {
       game.camera.pitch = clamp(game.camera.pitch + up * 0.3, -1.35, 1.25);
       game.camera.yaw += side * 0.3;
     }
-    game.events.emit('shot', { by: c, weapon: def.id, x: _from.x, y: _from.y, z: _from.z });
+    game.events.emit('shot', { by: c, weapon: def.id, x: _from.x, y: _from.y, z: _from.z, end: this.firstEnd, hit: this.firstHit });
   }
+
+  /**
+   * A shot fired in another browser (a friends room): the flash, the streak, the sound and the
+   * kick, with no damage. The shooter's browser and the host decide what it did.
+   */
+  remoteShot(c: Character, id: WeaponId, from: Vector3, end: Vector3, hit: string): void {
+    const game = this.game;
+    const def = WEAPONS[id];
+    if (!def) return;
+    c.loadout.sinceShot = 0;
+    _dir.subVectors(end, from);
+    if (_dir.lengthSq() < 1e-6) _dir.set(0, 0, -1);
+    _dir.normalize();
+    game.fx.tracer(from.x, from.y, from.z, end.x, end.y, end.z, def.tracer);
+    game.fx.burst('muzzle', from.x, from.y, from.z, { dx: _dir.x, dy: _dir.y, dz: _dir.z });
+    game.fx.flash(from.x, from.y, from.z, 8);
+    game.sound(def.sound, c.position);
+    c.anim.kick(def.kick);
+    this.views.get(c)?.kick(def.kick);
+    if (hit === 'character') game.fx.burst('blood', end.x, end.y, end.z, { dx: -_dir.x, dy: 0.3, dz: -_dir.z });
+    else if (hit === 'world' || hit === 'vehicle') game.fx.burst('impact', end.x, end.y, end.z, { dx: -_dir.x, dy: -_dir.y, dz: -_dir.z, color: 0xb9b2a6 });
+    this.shotsSeen++;
+  }
+
+  /** Shots from other browsers drawn here, for tests. */
+  shotsSeen = 0;
 
   /** One projectile: find what it hits, hurt it, and draw the streak and the impact. */
   private trace(c: Character, def: WeaponDef, tierDamage: number, eye: Vector3, dir: Vector3, from: Vector3): void {

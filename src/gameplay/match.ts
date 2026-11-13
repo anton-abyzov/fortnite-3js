@@ -62,6 +62,13 @@ export class Match implements GameSystem {
   readonly places = new Map<Character, number>();
   private playerDiedAt = -1;
   private aftermath = 0;
+  /**
+   * This browser calls the end of the round when one is left. A guest in a friends room does not:
+   * it waits for the host's word (`finishWith`).
+   */
+  authority = true;
+  /** A friends round: no seaplane, storm or bots. */
+  friends = false;
 
   constructor(private readonly game: Game) {
     game.events.on('kill', ({ victim, info }) => {
@@ -83,7 +90,7 @@ export class Match implements GameSystem {
         left,
       });
       if (this.feed.length > 40) this.feed.shift();
-      if (left <= 1) this.finish();
+      if (left <= 1 && this.authority) this.finish();
     });
   }
 
@@ -127,8 +134,51 @@ export class Match implements GameSystem {
     game.setPhase('match');
   }
 
+  /**
+   * A friends round: everyone given is already on the ground where they start. No seaplane, storm
+   * or bots; the loot is laid out from `seed` so every browser has the same.
+   */
+  startFriends(combatants: Character[], seed: number, round: number): void {
+    const game = this.game;
+    this.round = round;
+    this.friends = true;
+    this.running = true;
+    this.time = 0;
+    this.result = null;
+    this.aftermath = 0;
+    this.playerDiedAt = -1;
+    this.feed.length = 0;
+    this.places.clear();
+    this.combatants.length = 0;
+    this.combatants.push(...combatants);
+    this.alive = combatants.filter((c) => c.alive).length;
+    game.combat.clear();
+    game.fx.clear();
+    game.loot.reset(seed);
+    game.setPhase('match');
+  }
+
+  /** Take someone out of the round without a kill (they left the room). */
+  withdraw(c: Character): void {
+    const i = this.combatants.indexOf(c);
+    if (i < 0) return;
+    this.combatants.splice(i, 1);
+    let left = 0;
+    for (const x of this.combatants) if (x.alive) left++;
+    this.alive = left;
+    if (this.running && left <= 1 && this.authority) this.finish();
+  }
+
+  /** The host has called the end: `winner` is the last one standing, or null. */
+  finishWith(winner: Character | null, time: number): void {
+    if (!this.running) return;
+    this.time = time;
+    this.finish(winner);
+  }
+
   /** Leave the round and put the seaplane, the storm and the rivals away. */
   stop(): void {
+    this.friends = false;
     this.running = false;
     this.result = null;
     this.aftermath = 0;
@@ -138,12 +188,13 @@ export class Match implements GameSystem {
   }
 
   /** The last one standing has it. */
-  private finish(): void {
+  private finish(given?: Character | null): void {
     const game = this.game;
     const player = game.player;
     this.running = false;
     let winner: Character | null = null;
-    for (const c of this.combatants) if (c.alive) winner = c;
+    if (given !== undefined) winner = given;
+    else for (const c of this.combatants) if (c.alive) winner = c;
     if (winner) this.places.set(winner, 1);
     const won = winner !== null && winner === player;
     this.result = {

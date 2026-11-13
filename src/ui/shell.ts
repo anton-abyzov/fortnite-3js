@@ -38,7 +38,7 @@ const CONTROLS: readonly [string, string][] = [
 ];
 
 /** Classes on the page root that mean something else has the pointer and the keyboard. */
-const BUSY = ['shop-open', 'map-open', 'result-open', 'settings-open'] as const;
+const BUSY = ['shop-open', 'map-open', 'result-open', 'settings-open', 'friends-open'] as const;
 
 /**
  * The page around the canvas: the title screen, the prompt for the interact key and the pause card.
@@ -94,7 +94,7 @@ export class Shell {
     document.addEventListener('pointerlockchange', () => this.onLock());
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      if (e.code === 'Enter' && this.game.phase === 'menu') this.play();
+      if (e.code === 'Enter' && this.game.phase === 'menu' && !this.busy()) this.play();
       else if (e.code === 'Escape' && !e.defaultPrevented && this.game.phase === 'match' && !this.busy()) this.setPaused(!this.paused);
     });
     this.sync();
@@ -167,11 +167,7 @@ export class Shell {
     const card = el('div', 'pause');
     card.setAttribute('role', 'dialog');
     card.setAttribute('aria-label', 'Paused');
-    const back = button('pause-back', 'Title', () => {
-      this.game.input.setWantLock(false);
-      this.game.match.stop();
-      this.game.setPhase('menu');
-    });
+    const back = button('pause-back', 'Title', () => this.game.toTitle());
     const actions = el('div', 'pause-actions');
     actions.append(this.resume, this.pauseSlot, back);
     const text = el('div', 'pause-text');
@@ -205,7 +201,8 @@ export class Shell {
     const g = this.game;
     this.paused = on;
     // The world stops; the picture stays.
-    g.engine.timeScale = on ? 0 : 1;
+    // A friends round goes on for everyone else: only the view and the keys stop.
+    g.engine.timeScale = on && !g.match.friends ? 0 : 1;
     g.input.enabled = !on;
     this.root.classList.toggle('paused', on);
     // The card is on the page before its button is given the keyboard.

@@ -93,7 +93,7 @@ export class Aftermath {
       this.stats.append(cell);
     }
     this.again = button('result-again', 'Play again', (e) => {
-      if (this.armed(e)) this.game.startMatch();
+      if (this.armed(e)) this.game.playAgain();
     });
     this.back = button('result-back', 'Title', (e) => {
       if (this.armed(e)) this.toTitle();
@@ -132,7 +132,7 @@ export class Aftermath {
         // The focus has wandered off the card: the key still means its main button.
         e.preventDefault();
         this.again.focus();
-        if (performance.now() >= this.armedAt) g.startMatch();
+        if (performance.now() >= this.armedAt) g.playAgain();
       }
     });
   }
@@ -148,10 +148,7 @@ export class Aftermath {
   }
 
   private toTitle(): void {
-    const g = this.game;
-    g.input.setWantLock(false);
-    g.match.stop();
-    g.setPhase('menu');
+    this.game.toTitle();
   }
 
   /** The player is out. */
